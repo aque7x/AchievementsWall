@@ -77,7 +77,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 </div>
 
 <script>
-// Replace this with your actual Google Apps Script URL
+// رابط Google Apps Script الصحيح
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
 let currentUser=null;
 let boardData=[];
@@ -85,30 +85,21 @@ const users={ admin:{ password:'admin123', type:'admin', displayName:'المدي
 const colors=['peach','mint','lavender','pink','sky'];
 
 function loadDataFromSheet(result){
-    console.log('Received data:', result);
+    console.log('تم استلام البيانات:', result);
     if(result.result!=='success'){
         document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
         return;
     }
     
-    // Filter out empty rows and process data
+    // معالجة البيانات
     boardData = result.data
-        .filter(item => item.id && item.id !== '') // Only keep rows with valid IDs
+        .filter(item => item.id && item.id !== '') // فقط الصفوف التي لها معرف صحيح
         .map(item=>({ 
             id: parseInt(item.id, 10), 
             name: item.name || `مستخدم ${item.id}`, 
             achievement: item.achievement || '', 
             photo: item.photo || null 
         }));
-    
-    // If no valid data, create some sample data for demo
-    if (boardData.length === 0) {
-        boardData = [
-            { id: 1, name: 'أحمد محمد', achievement: 'أكملت مشروع البرمجة', photo: '' },
-            { id: 2, name: 'فاطمة علي', achievement: 'تعلمت لغة جديدة', photo: '' },
-            { id: 3, name: 'محمد أحمد', achievement: 'حسنت مهاراتي في الرياضيات', photo: '' }
-        ];
-    }
     
     populateUsersFromBoardData();
     document.getElementById('loading').style.display='none';
@@ -196,10 +187,10 @@ function renderBoard(){
                 saveBtn.textContent="⏳ جاري الحفظ...";
                 saveBtn.disabled = true;
                 
-                // Save to Google Sheet using fetch
+                // حفظ في Google Sheet
                 saveToSheet(cardData.id, textarea.value, photoInput.value)
                     .then(() => {
-                        // Update local data
+                        // تحديث البيانات المحلية
                         originalAchievement = textarea.value;
                         originalPhoto = photoInput.value;
                         boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
@@ -213,7 +204,7 @@ function renderBoard(){
                         }, 1500);
                     })
                     .catch(error => {
-                        console.error('Save error:', error);
+                        console.error('خطأ في الحفظ:', error);
                         saveBtn.textContent = "❌ خطأ في الحفظ";
                         saveBtn.disabled = false;
                         setTimeout(() => {
@@ -227,10 +218,12 @@ function renderBoard(){
     });
 }
 
-// Function to save data to Google Sheet
+// دالة لحفظ البيانات في Google Sheet
 async function saveToSheet(id, achievement, photo) {
     try {
-        // First save achievement
+        console.log('جاري حفظ البيانات:', { id, achievement, photo });
+        
+        // أولاً حفظ الإنجاز
         const achievementResponse = await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
             headers: {
@@ -245,11 +238,13 @@ async function saveToSheet(id, achievement, photo) {
         });
         
         const achievementResult = await achievementResponse.json();
+        console.log('نتيجة حفظ الإنجاز:', achievementResult);
+        
         if (achievementResult.result !== 'success') {
             throw new Error(achievementResult.message);
         }
         
-        // Then save photo
+        // ثم حفظ الصورة
         const photoResponse = await fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
             headers: {
@@ -264,13 +259,15 @@ async function saveToSheet(id, achievement, photo) {
         });
         
         const photoResult = await photoResponse.json();
+        console.log('نتيجة حفظ الصورة:', photoResult);
+        
         if (photoResult.result !== 'success') {
             throw new Error(photoResult.message);
         }
         
         return true;
     } catch (error) {
-        console.error('Error saving to sheet:', error);
+        console.error('خطأ في حفظ البيانات:', error);
         throw error;
     }
 }
@@ -285,7 +282,7 @@ function addNewCard(){
     const newId=Date.now(); 
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
     
-    // Save to Google Sheet first
+    // حفظ في Google Sheet أولاً
     fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
         headers: {
@@ -298,6 +295,7 @@ function addNewCard(){
     })
     .then(response => response.json())
     .then(data => {
+        console.log('نتيجة إضافة البطاقة:', data);
         if (data.result === 'success') {
             boardData.push(newRow);
             renderBoard();
@@ -306,7 +304,7 @@ function addNewCard(){
         }
     })
     .catch(error => {
-        console.error('Error adding card:', error);
+        console.error('خطأ في إضافة البطاقة:', error);
         alert("مشكلة في الشبكة أو الخادم");
     });
 }
