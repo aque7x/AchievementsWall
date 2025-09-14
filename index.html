@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حائط الإنجازات</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); min-height:100vh; padding:40px 20px; direction:rtl; }
+.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; font-size:24px; color:#2d3436; }
+.login-container { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+.login-box { background:white; padding:50px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); text-align:center; max-width:450px; width:100%; }
+.login-title { font-size:36px; color:#2d3436; margin-bottom:15px; }
+.login-subtitle { font-size:18px; color:#636e72; margin-bottom:40px; }
+.form-group { margin-bottom:25px; text-align:right; }
+.form-group label { display:block; margin-bottom:8px; font-weight:600; }
+.form-input { width:100%; padding:15px; border:2px solid #ddd; border-radius:10px; font-size:16px; text-align:right; }
+.login-btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b894,#00a085); color:white; border:none; border-radius:10px; font-size:18px; cursor:pointer; }
+.error-message { background:#ff7675; color:white; padding:10px; border-radius:8px; margin-bottom:20px; display:none; }
+.main-app { display:none; }
+.container { max-width:1400px; margin:0 auto; }
+.header { text-align:center; margin-bottom:30px; position:relative; }
+.user-info { position:absolute; top:0; left:20px; background:white; padding:10px 20px; border-radius:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); font-size:14px; }
+.logout-btn { background:#ff7675; color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; margin-right:10px; }
+.main-title { font-size:56px; color:#2d3436; margin-bottom:15px; }
+.subtitle { font-size:24px; color:#636e72; }
+.add-btn { background:#0984e3; color:white; padding:10px 20px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin-bottom:20px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
+.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
+.sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
+.name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
+.profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
+.profile-circle img { width:100%; height:100%; object-fit:cover; }
+.writing-area { padding:45px 20px 20px 60px; height:calc(100% - 20px); display:flex; flex-direction:column; }
+.achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
+.achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
+.save-btn { margin-top:10px; padding:8px; border:none; border-radius:8px; background:#00b894; color:#fff; cursor:pointer; font-size:14px; display:none; }
+.photo-input { margin-top:10px; padding:6px; width:100%; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-overlay"><span>جاري تحميل البيانات...</span></div>
+
+<div id="loginScreen" class="login-container">
+  <div class="login-box">
+    <h2 class="login-title">حائط الإنجازات</h2>
+    <p class="login-subtitle">مرحباً بك! الرجاء تسجيل الدخول للمتابعة</p>
+    <div id="errorMessage" class="error-message"></div>
+    <form onsubmit="login(event)">
+      <div class="form-group">
+        <label for="username">اسم المستخدم:</label>
+        <input type="text" id="username" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="password">كلمة المرور:</label>
+        <input type="password" id="password" class="form-input" required>
+      </div>
+      <button type="submit" class="login-btn">تسجيل الدخول</button>
+    </form>
+  </div>
+</div>
+
+<div id="mainApp" class="main-app">
+  <div class="container">
+    <div class="header">
+      <div class="user-info">
+        <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
+        <span id="userInfo"></span>
+      </div>
+      <h1 class="main-title">حائط الإنجازات</h1>
+      <p class="subtitle">شنو حققت هذا الأسبوع؟</p>
+      <button class="add-btn" onclick="addNewCard()">➕ إضافة بطاقة جديدة</button>
+    </div>
+    <div class="grid" id="achievementGrid"></div>
+  </div>
+</div>
+
+<script>
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyJUl8rWGEgQTYRm7cyRu7P06jlJCA4DFeC5ZH77WyKcspk1QxUrxzcqQwlxx_rXOby/exec';
+let currentUser=null;
+let boardData=[];
+const users={ admin:{ password:'admin123', type:'admin', displayName:'المدير' } };
+const colors=['peach','mint','lavender','pink','sky'];
+
+function loadDataFromSheet(result){
+    if(result.result!=='success'){
+        document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
+        return;
+    }
+    boardData=result.data.map(item=>({ 
+        id:parseInt(item.id,10), 
+        name:item.name, 
+        achievement:item.achievement||'', 
+        photo:item.photo||null 
+    }));
+    populateUsersFromBoardData();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+}
+
+function populateUsersFromBoardData(){
+    boardData.forEach((card,index)=>{
+        let displayName = card.name && card.name.trim() !== '' ? card.name : `user_${card.id || index+1}`;
+        let username = displayName.replace(/\s+|!/g,'').toLowerCase();
+        if(!users[username]){
+            users[username] = { password:'123', type:'student', displayName: displayName };
+            if(!card.name || card.name.trim()==='') card.name = displayName;
+        }
+    });
+}
+
+function login(event){
+    event.preventDefault();
+    const username=document.getElementById('username').value.toLowerCase();
+    const password=document.getElementById('password').value;
+    const user=users[username];
+    if(user && user.password===password){
+        currentUser={...user, username};
+        loginScreen.style.display='none';
+        mainApp.style.display='block';
+        document.getElementById('userInfo').textContent=`مرحباً، ${currentUser.displayName}`;
+        renderBoard();
+    } else {
+        const errorDiv=document.getElementById('errorMessage');
+        errorDiv.textContent='اسم المستخدم أو كلمة المرور غير صحيحة';
+        errorDiv.style.display='block';
+    }
+}
+
+function logout(){
+    currentUser=null;
+    mainApp.style.display='none';
+    loginScreen.style.display='flex';
+    document.getElementById('username').value='';
+    document.getElementById('password').value='';
+}
+
+function renderBoard(){
+    const grid=document.getElementById('achievementGrid');
+    grid.innerHTML='';
+    boardData.forEach(cardData=>{
+        const card=document.createElement('div');
+        card.className='sticky-note';
+        const isAdmin=currentUser.type==='admin';
+        const isOwner=currentUser.type==='student' && currentUser.displayName===cardData.name;
+        const canEdit=isAdmin||isOwner;
+        const colorClass=colors[cardData.id%colors.length];
+        const firstLetter=cardData.name?cardData.name.charAt(0):'?';
+        const photoHTML=cardData.photo?`<img src="${cardData.photo}" alt="Profile Photo">`:`<span>${firstLetter}</span>`;
+
+        card.innerHTML=`
+            <div class="name-label">${cardData.name}</div>
+            <div class="profile-circle ${colorClass}">${photoHTML}</div>
+            <div class="writing-area">
+              <textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit?'disabled':''}>${cardData.achievement}</textarea>
+              ${canEdit ? `<input type="text" class="photo-input" placeholder="رابط الصورة..." value="${cardData.photo||''}">` : ''}
+              ${canEdit ? `<button class="save-btn">💾 حفظ</button>` : ''}
+            </div>
+        `;
+
+        if(canEdit){
+            const textarea=card.querySelector('.achievement-text');
+            const photoInput=card.querySelector('.photo-input');
+            const saveBtn=card.querySelector('.save-btn');
+            let originalAchievement=textarea.value;
+            let originalPhoto=photoInput.value;
+
+            textarea.addEventListener('input',()=> toggleSaveBtn());
+            photoInput.addEventListener('input',()=> toggleSaveBtn());
+
+            function toggleSaveBtn(){
+                if(textarea.value!==originalAchievement || photoInput.value!==originalPhoto){
+                    saveBtn.style.display='block';
+                } else {
+                    saveBtn.style.display='none';
+                }
+            }
+
+            saveBtn.addEventListener('click',()=>{
+                saveBtn.textContent="⏳ جاري الحفظ...";
+                fetch(GOOGLE_SHEET_URL,{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ 
+                        action:'update', 
+                        id:cardData.id, 
+                        field:'achievement', 
+                        value:textarea.value 
+                    })
+                }).then(r=>r.json())
+                .then(data=>{
+                    if(data.result==='success'){
+                        return fetch(GOOGLE_SHEET_URL,{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify({ 
+                                action:'update', 
+                                id:cardData.id, 
+                                field:'photo', 
+                                value:photoInput.value 
+                            })
+                        }).then(r=>r.json());
+                    } else throw new Error(data.message);
+                })
+                .then(photoRes=>{
+                    if(photoRes.result==='success'){
+                        originalAchievement=textarea.value;
+                        originalPhoto=photoInput.value;
+                        saveBtn.textContent="✅ تم الحفظ";
+                        setTimeout(()=> saveBtn.style.display='none',1500);
+                        renderBoard();
+                    } else {
+                        saveBtn.textContent="❌ خطأ";
+                    }
+                })
+                .catch(err=>{
+                    console.error('Error:',err);
+                    saveBtn.textContent="❌ خطأ";
+                });
+            });
+        }
+
+        grid.appendChild(card);
+    });
+}
+
+function addNewCard(){
+    const newId=Date.now(); 
+    const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
+    fetch(GOOGLE_SHEET_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'add', row:newRow })
+    }).then(r=>r.json())
+    .then(data=>{
+        if(data.result==='success'){
+            boardData.push(newRow);
+            renderBoard();
+        } else {
+            alert("خطأ: "+data.message);
+        }
+    }).catch(err=> alert("مشكلة بالشبكة"));
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const script=document.createElement('script');
+    script.src=`${GOOGLE_SHEET_URL}?callback=loadDataFromSheet`;
+    document.body.appendChild(script);
+});
+</script>
+</body>
+</html>
