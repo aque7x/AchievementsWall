@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); min-height:100vh; padding:40px 20px; direction:rtl; }
-.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; font-size:24px; color:#2d3436; }
+.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items-center; justify-content:center; font-size:24px; color:#2d3436; }
 .login-container { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
 .login-box { background:white; padding:50px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); text-align:center; max-width:450px; width:100%; }
 .login-title { font-size:36px; color:#2d3436; margin-bottom:15px; }
@@ -27,14 +27,20 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .subtitle { font-size:24px; color:#636e72; }
 .add-btn { background:#0984e3; color:white; padding:10px 20px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin-bottom:20px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
-.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
+.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; display: flex; flex-direction: column; }
 .sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
 .name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
 .profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
-.writing-area { padding:45px 20px 20px 60px; height:calc(100% - 20px); display:flex; flex-direction:column; }
-.achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
-.achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
-.save-status { margin-top:10px; font-size:13px; color:#636e72; height:15px; text-align:left; transition: color 0.3s ease; }
+.writing-area { padding:45px 20px 20px 60px; flex-grow: 1; display:flex; flex-direction:column; }
+/* New styles for contenteditable div */
+.achievement-text { flex-grow: 1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; outline:none; text-align:right; overflow-y: auto; }
+.achievement-text[contenteditable="true"] { border: 1px solid #eee; border-radius: 5px; padding: 10px; }
+.achievement-text:not([contenteditable="true"]) { cursor:not-allowed; opacity:0.7; }
+/* Styling for checkboxes inside the editor */
+.achievement-text input[type="checkbox"] { margin-left: 5px; transform: translateY(2px); }
+.card-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.add-task-btn { padding: 5px 10px; font-size: 12px; background-color: #dfe6e9; border: none; border-radius: 5px; cursor: pointer; }
+.save-status { font-size:13px; color:#636e72; height:15px; text-align:left; transition: color 0.3s ease; }
 </style>
 </head>
 <body>
@@ -80,15 +86,13 @@ let currentUser=null;
 let boardData=[];
 const users={ admin:{ password:'admin123', type:'admin', displayName:'المدير' } };
 const colors=['peach','mint','lavender','pink','sky'];
-let saveTimer; // متغير لتتبع مؤقت الحفظ التلقائي
+let saveTimer;
 
 function loadDataFromSheet(result){
-    console.log('تم استلام البيانات:', result);
     if(result.result!=='success'){
         document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
         return;
     }
-    
     boardData = result.data
         .filter(item => item.id && item.id !== '')
         .map(item=>({ 
@@ -96,7 +100,6 @@ function loadDataFromSheet(result){
             name: item.name || `مستخدم ${item.id}`, 
             achievement: item.achievement || '',
         }));
-    
     populateUsersFromBoardData();
     document.getElementById('loading').style.display='none';
     document.getElementById('loginScreen').style.display='flex';
@@ -154,30 +157,45 @@ function renderBoard(){
             <div class="name-label">${cardData.name}</div>
             <div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div>
             <div class="writing-area">
-              <textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit?'disabled':''}>${cardData.achievement}</textarea>
-              ${canEdit ? '<div class="save-status"></div>' : ''}
+              <div class="achievement-text" contenteditable="${canEdit ? 'true' : 'false'}">${cardData.achievement}</div>
+              ${canEdit ? `
+                <div class="card-controls">
+                  <button class="add-task-btn">➕ إضافة مهمة</button>
+                  <div class="save-status"></div>
+                </div>
+              ` : ''}
             </div>
         `;
 
         if(canEdit){
-            const textarea = card.querySelector('.achievement-text');
+            const editor = card.querySelector('.achievement-text');
             const saveStatus = card.querySelector('.save-status');
+            const addTaskBtn = card.querySelector('.add-task-btn');
 
-            textarea.addEventListener('input', () => {
-                saveStatus.textContent = '...يكتب';
+            // Add new checkbox task
+            addTaskBtn.addEventListener('click', () => {
+                // Using <div> to ensure each task is on a new line
+                editor.innerHTML += '<div><input type="checkbox">&nbsp;</div>'; 
+                editor.focus(); // Focus on the editor to start typing
+                // Manually trigger input event to start auto-save timer
+                editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            });
+
+            // Auto-save on input
+            editor.addEventListener('input', () => {
+                saveStatus.textContent = '...';
                 saveStatus.style.color = '#636e72';
-                clearTimeout(saveTimer); // إلغاء المؤقت السابق عند الكتابة مجدداً
+                clearTimeout(saveTimer);
                 
-                // بدء مؤقت جديد للحفظ بعد 1.5 ثانية من التوقف عن الكتابة
                 saveTimer = setTimeout(() => {
                     saveStatus.textContent = "⏳ جاري الحفظ...";
-                    saveAchievementToSheet(cardData.id, textarea.value)
+                    // IMPORTANT: We now save the editor's innerHTML
+                    saveAchievementToSheet(cardData.id, editor.innerHTML)
                         .then(() => {
                             saveStatus.textContent = "✅ تم الحفظ";
                             saveStatus.style.color = '#00b894';
-                            // تحديث البيانات المحلية
                             const localCard = boardData.find(item => item.id === cardData.id);
-                            if(localCard) localCard.achievement = textarea.value;
+                            if(localCard) localCard.achievement = editor.innerHTML;
                         })
                         .catch(error => {
                             console.error('خطأ في الحفظ:', error);
@@ -187,54 +205,30 @@ function renderBoard(){
                 }, 1500);
             });
         }
-
         grid.appendChild(card);
     });
 }
 
-function saveAchievementToSheet(id, achievement) {
+function saveAchievementToSheet(id, achievementHTML) {
     return new Promise((resolve, reject) => {
         const callbackName = 'saveCallback' + Date.now() + Math.random().toString().substr(2);
-        
         window[callbackName] = (result) => {
-            console.log('نتيجة حفظ الإنجاز:', result);
-            if (result.result === 'success') {
-                resolve(true);
-            } else {
-                reject(new Error(result.message || 'Unknown error'));
-            }
-            // التنظيف
             delete window[callbackName];
-            if (document.head.contains(script)) {
-                document.head.removeChild(script);
-            }
+            if (document.head.contains(script)) document.head.removeChild(script);
+            if (result.result === 'success') resolve(true);
+            else reject(new Error(result.message || 'Unknown error'));
         };
 
         const script = document.createElement('script');
-        const data = {
-            action: 'update',
-            id: id,
-            field: 'achievement',
-            value: achievement
-        };
+        const data = { action: 'update', id: id, field: 'achievement', value: achievementHTML };
         script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
         script.onerror = () => {
-            reject(new Error('فشل في الاتصال بالخادم لحفظ الإنجاز'));
             delete window[callbackName];
+            reject(new Error('فشل في الاتصال بالخادم لحفظ الإنجاز'));
         };
-
         document.head.appendChild(script);
-        
-        // Timeout in case of no response
-        setTimeout(() => {
-            if (window[callbackName]) {
-                reject(new Error('انتهت مهلة طلب الحفظ'));
-                delete window[callbackName];
-            }
-        }, 15000);
     });
 }
-
 
 function addNewCard(){
     const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
@@ -244,14 +238,11 @@ function addNewCard(){
     }
 
     const newId=Date.now(); 
-    const newRow={ id:newId, name:currentUser.displayName, achievement:"" };
+    const newRow={ id:newId, name:currentUser.displayName, achievement:"<div>اكتب هنا...</div>" };
     
     const callback = 'addCallback' + Date.now() + Math.random();
     window[callback] = (result) => {
-        console.log('نتيجة إضافة البطاقة:', result);
-        if (document.head.contains(script)) {
-            document.head.removeChild(script);
-        }
+        if (document.head.contains(script)) document.head.removeChild(script);
         delete window[callback];
         if (result.result === 'success') {
             boardData.push(newRow);
@@ -264,9 +255,7 @@ function addNewCard(){
     const script = document.createElement('script');
     const data = { action: 'add', row: newRow };
     script.src = `${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
-    script.onerror = () => {
-        alert("مشكلة في الشبكة أو الخادم");
-    };
+    script.onerror = () => alert("مشكلة في الشبكة أو الخادم");
     document.head.appendChild(script);
 }
 
