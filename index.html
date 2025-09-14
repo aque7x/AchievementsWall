@@ -77,7 +77,6 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 </div>
 
 <script>
-// !!! تذكر أن تضع رابط الـ Web App الخاص بك هنا
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
 let currentUser=null;
 let boardData=[];
@@ -182,7 +181,7 @@ function renderBoard(){
                 saveBtn.textContent="⏳ جاري الحفظ...";
                 fetch(GOOGLE_SHEET_URL,{
                     method:'POST',
-                    // ✨ التعديل الأول لحل مشكلة CORS
+                    // ✅  هذا هو التعديل الأساسي لحل المشكلة
                     headers:{'Content-Type':'text/plain;charset=utf-8'},
                     body: JSON.stringify({ 
                         action:'update', 
@@ -195,7 +194,7 @@ function renderBoard(){
                     if(data.result==='success'){
                         return fetch(GOOGLE_SHEET_URL,{
                             method:'POST',
-                            // ✨ هنا أيضاً تم التعديل
+                            // ✅  وهنا أيضاً
                             headers:{'Content-Type':'text/plain;charset=utf-8'},
                             body: JSON.stringify({ 
                                 action:'update', 
@@ -233,7 +232,6 @@ function renderBoard(){
 }
 
 function addNewCard(){
-    // منع إضافة بطاقة إذا كان المستخدم لديه بطاقة فارغة بالفعل
     const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
     if (existingCard) {
         alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.');
@@ -244,7 +242,7 @@ function addNewCard(){
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
     fetch(GOOGLE_SHEET_URL,{
         method:'POST',
-        // ✨ التعديل الثالث لحل مشكلة CORS
+        // ✅  وهنا أيضاً
         headers:{'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ action:'add', row:newRow })
     }).then(r=>r.json())
