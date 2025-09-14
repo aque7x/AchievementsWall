@@ -179,48 +179,72 @@ function renderBoard(){
 
             saveBtn.addEventListener('click',()=>{
                 saveBtn.textContent="⏳ جاري الحفظ...";
-                fetch(GOOGLE_SHEET_URL,{
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ 
-                        action:'update', 
-                        id:cardData.id, 
-                        field:'achievement', 
-                        value:textarea.value 
-                    })
-                }).then(r=>r.json())
-                .then(data=>{
-                    if(data.result==='success'){
-                        return fetch(GOOGLE_SHEET_URL,{
-                            method:'POST',
-                            headers:{'Content-Type':'application/json'},
-                            body: JSON.stringify({ 
-                                action:'update', 
-                                id:cardData.id, 
-                                field:'photo', 
-                                value:photoInput.value 
-                            })
-                        }).then(r=>r.json());
-                    } else throw new Error(data.message);
+                
+                // Use JSONP for POST requests to avoid CORS
+                const updateAchievement = () => {
+                    return new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        const callbackName = 'updateCallback' + Date.now();
+                        window[callbackName] = (result) => {
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                            if (result.result === 'success') {
+                                resolve(result);
+                            } else {
+                                reject(new Error(result.message));
+                            }
+                        };
+                        const data = {
+                            action: 'update',
+                            id: cardData.id,
+                            field: 'achievement',
+                            value: textarea.value
+                        };
+                        script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
+                        document.head.appendChild(script);
+                    });
+                };
+
+                const updatePhoto = () => {
+                    return new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        const callbackName = 'photoCallback' + Date.now();
+                        window[callbackName] = (result) => {
+                            document.head.removeChild(script);
+                            delete window[callbackName];
+                            if (result.result === 'success') {
+                                resolve(result);
+                            } else {
+                                reject(new Error(result.message));
+                            }
+                        };
+                        const data = {
+                            action: 'update',
+                            id: cardData.id,
+                            field: 'photo',
+                            value: photoInput.value
+                        };
+                        script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
+                        document.head.appendChild(script);
+                    });
+                };
+
+                updateAchievement()
+                .then(() => updatePhoto())
+                .then(() => {
+                    originalAchievement = textarea.value;
+                    originalPhoto = photoInput.value;
+                    boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
+                    boardData.find(item => item.id === cardData.id).photo = originalPhoto;
+                    saveBtn.textContent = "✅ تم الحفظ";
+                    setTimeout(() => {
+                        saveBtn.style.display = 'none';
+                        saveBtn.textContent = "💾 حفظ";
+                    }, 1500);
                 })
-                .then(photoRes=>{
-                    if(photoRes.result==='success'){
-                        originalAchievement=textarea.value;
-                        originalPhoto=photoInput.value;
-                        boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
-                        boardData.find(item => item.id === cardData.id).photo = originalPhoto;
-                        saveBtn.textContent="✅ تم الحفظ";
-                        setTimeout(()=> {
-                            saveBtn.style.display='none';
-                            saveBtn.textContent = "💾 حفظ";
-                        }, 1500);
-                    } else {
-                        saveBtn.textContent="❌ خطأ";
-                    }
-                })
-                .catch(err=>{
-                    console.error('Error:',err);
-                    saveBtn.textContent="❌ خطأ";
+                .catch(err => {
+                    console.error('Error:', err);
+                    saveBtn.textContent = "❌ خطأ";
                 });
             });
         }
@@ -238,22 +262,23 @@ function addNewCard(){
 
     const newId=Date.now(); 
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
-    fetch(GOOGLE_SHEET_URL,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'add', row:newRow })
-    }).then(r=>r.json())
-    .then(data=>{
-        if(data.result==='success'){
+    
+    // Use JSONP for POST requests
+    const script = document.createElement('script');
+    const callbackName = 'addCallback' + Date.now();
+    window[callbackName] = (result) => {
+        document.head.removeChild(script);
+        delete window[callbackName];
+        if (result.result === 'success') {
             boardData.push(newRow);
             renderBoard();
         } else {
-            alert("خطأ: "+data.message);
+            alert("خطأ: " + result.message);
         }
-    }).catch(err=> {
-      console.error(err);
-      alert("مشكلة بالشبكة أو خطأ في الخادم");
-    });
+    };
+    const data = { action: 'add', row: newRow };
+    script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
+    document.head.appendChild(script);
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
