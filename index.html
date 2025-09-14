@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); min-height:100vh; padding:40px 20px; direction:rtl; }
-.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items-center; justify-content:center; font-size:24px; color:#2d3436; }
+.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; font-size:24px; color:#2d3436; }
 .login-container { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
 .login-box { background:white; padding:50px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); text-align:center; max-width:450px; width:100%; }
 .login-title { font-size:36px; color:#2d3436; margin-bottom:15px; }
@@ -32,11 +32,9 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
 .profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
 .writing-area { padding:45px 20px 20px 60px; flex-grow: 1; display:flex; flex-direction:column; }
-/* New styles for contenteditable div */
 .achievement-text { flex-grow: 1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; outline:none; text-align:right; overflow-y: auto; }
 .achievement-text[contenteditable="true"] { border: 1px solid #eee; border-radius: 5px; padding: 10px; }
 .achievement-text:not([contenteditable="true"]) { cursor:not-allowed; opacity:0.7; }
-/* Styling for checkboxes inside the editor */
 .achievement-text input[type="checkbox"] { margin-left: 5px; transform: translateY(2px); }
 .card-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .add-task-btn { padding: 5px 10px; font-size: 12px; background-color: #dfe6e9; border: none; border-radius: 5px; cursor: pointer; }
@@ -172,24 +170,18 @@ function renderBoard(){
             const saveStatus = card.querySelector('.save-status');
             const addTaskBtn = card.querySelector('.add-task-btn');
 
-            // Add new checkbox task
             addTaskBtn.addEventListener('click', () => {
-                // Using <div> to ensure each task is on a new line
                 editor.innerHTML += '<div><input type="checkbox">&nbsp;</div>'; 
-                editor.focus(); // Focus on the editor to start typing
-                // Manually trigger input event to start auto-save timer
+                editor.focus();
                 editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
             });
 
-            // Auto-save on input
             editor.addEventListener('input', () => {
                 saveStatus.textContent = '...';
                 saveStatus.style.color = '#636e72';
                 clearTimeout(saveTimer);
-                
                 saveTimer = setTimeout(() => {
                     saveStatus.textContent = "⏳ جاري الحفظ...";
-                    // IMPORTANT: We now save the editor's innerHTML
                     saveAchievementToSheet(cardData.id, editor.innerHTML)
                         .then(() => {
                             saveStatus.textContent = "✅ تم الحفظ";
@@ -203,6 +195,22 @@ function renderBoard(){
                             saveStatus.style.color = '#ff7675';
                         });
                 }, 1500);
+            });
+
+            // *** الكود الجديد المضاف ***
+            // هذا الجزء يستمع لأي تغيير يحدث داخل منطقة الكتابة
+            editor.addEventListener('change', (event) => {
+                // نتأكد أن العنصر الذي تغير هو مربع اختيار
+                if (event.target.type === 'checkbox') {
+                    // نحدّث كود الـ HTML الخاص بمربع الاختيار
+                    if (event.target.checked) {
+                        event.target.setAttribute('checked', 'checked');
+                    } else {
+                        event.target.removeAttribute('checked');
+                    }
+                    // نفعل الحفظ التلقائي يدوياً
+                    editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                }
             });
         }
         grid.appendChild(card);
