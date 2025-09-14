@@ -25,7 +25,6 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .logout-btn { background:#ff7675; color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; margin-right:10px; }
 .main-title { font-size:56px; color:#2d3436; margin-bottom:15px; }
 .subtitle { font-size:24px; color:#636e72; }
-.add-btn { background:#0984e3; color:white; padding:10px 20px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin-bottom:20px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
 .sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
 .sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
@@ -38,7 +37,6 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 
 /* Styles for About Modal */
 .about-link { font-size: 14px; color: #636e72; margin-top: 20px; cursor: pointer; text-decoration: underline; }
-.header .about-link { margin-top: 0; margin-left: 15px; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; display: none; align-items: center; justify-content: center; }
 .modal-content { background: white; padding: 40px; border-radius: 20px; max-width: 500px; width: 90%; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
 .modal-content h2 { font-size: 32px; margin-bottom: 20px; color: #2d3436; }
@@ -78,12 +76,10 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
       <div class="user-info">
         <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
         <span id="userInfo"></span>
-        <div class="about-link" onclick="toggleAboutModal(true)">عن المطور</div>
       </div>
       <h1 class="main-title">حائط الإنجازات</h1>
       <p class="subtitle">شنو حققت هذا الأسبوع؟</p>
-      <button class="add-btn" onclick="addNewCard()">➕ إضافة بطاقة جديدة</button>
-    </div>
+      </div>
     <div class="grid" id="achievementGrid"></div>
   </div>
 </div>
@@ -228,31 +224,7 @@ function saveAchievementToSheet(id, achievementText) {
     });
 }
 
-function addNewCard(){
-    const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
-    if (existingCard) {
-        alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.');
-        return;
-    }
-    const newId=Date.now(); 
-    const newRow={ id:newId, name:currentUser.displayName, achievement: "" };
-    const callback = 'addCallback' + Date.now() + Math.random();
-    window[callback] = (result) => {
-        if (document.head.contains(script)) document.head.removeChild(script);
-        delete window[callback];
-        if (result.result === 'success') {
-            boardData.push(newRow);
-            renderBoard();
-        } else {
-            alert("خطأ في إضافة البطاقة: " + result.message);
-        }
-    };
-    const script = document.createElement('script');
-    const data = { action: 'add', row: newRow };
-    script.src = `${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
-    script.onerror = () => alert("مشكلة في الشبكة أو الخادم");
-    document.head.appendChild(script);
-}
+// ADD NEW CARD FUNCTION REMOVED
 
 // Function to control the About Modal
 function toggleAboutModal(show) {
