@@ -27,4 +27,319 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .subtitle { font-size:24px; color:#636e72; }
 .add-btn { background:#0984e3; color:white; padding:10px 20px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin-bottom:20px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
-.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; p
+.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
+.sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
+.name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
+.profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
+.profile-circle img { width:100%; height:100%; object-fit:cover; }
+.writing-area { padding:45px 20px 20px 60px; height:calc(100% - 20px); display:flex; flex-direction:column; }
+.achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
+.achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
+.save-btn { margin-top:10px; padding:8px; border:none; border-radius:8px; background:#00b894; color:#fff; cursor:pointer; font-size:14px; display:none; }
+.photo-input { margin-top:10px; padding:6px; width:100%; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="loading" class="loading-overlay"><span>جاري تحميل البيانات...</span></div>
+
+<div id="loginScreen" class="login-container">
+  <div class="login-box">
+    <h2 class="login-title">حائط الإنجازات</h2>
+    <p class="login-subtitle">مرحباً بك! الرجاء تسجيل الدخول للمتابعة</p>
+    <div id="errorMessage" class="error-message"></div>
+    <form onsubmit="login(event)">
+      <div class="form-group">
+        <label for="username">اسم المستخدم:</label>
+        <input type="text" id="username" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="password">كلمة المرور:</label>
+        <input type="password" id="password" class="form-input" required>
+      </div>
+      <button type="submit" class="login-btn">تسجيل الدخول</button>
+    </form>
+  </div>
+</div>
+
+<div id="mainApp" class="main-app">
+  <div class="container">
+    <div class="header">
+      <div class="user-info">
+        <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
+        <span id="userInfo"></span>
+      </div>
+      <h1 class="main-title">حائط الإنجازات</h1>
+      <p class="subtitle">شنو حققت هذا الأسبوع؟</p>
+      <button class="add-btn" onclick="addNewCard()">➕ إضافة بطاقة جديدة</button>
+    </div>
+    <div class="grid" id="achievementGrid"></div>
+  </div>
+</div>
+
+<script>
+// رابط Google Apps Script الصحيح
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
+let currentUser=null;
+let boardData=[];
+const users={ admin:{ password:'admin123', type:'admin', displayName:'المدير' } };
+const colors=['peach','mint','lavender','pink','sky'];
+
+function loadDataFromSheet(result){
+    console.log('تم استلام البيانات:', result);
+    if(result.result!=='success'){
+        document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
+        return;
+    }
+    
+    // معالجة البيانات
+    boardData = result.data
+        .filter(item => item.id && item.id !== '') // فقط الصفوف التي لها معرف صحيح
+        .map(item=>({ 
+            id: parseInt(item.id, 10), 
+            name: item.name || `مستخدم ${item.id}`, 
+            achievement: item.achievement || '', 
+            photo: item.photo || null 
+        }));
+    
+    populateUsersFromBoardData();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+}
+
+function populateUsersFromBoardData(){
+    boardData.forEach((card,index)=>{
+        let displayName = card.name && card.name.trim() !== '' ? card.name : `user_${card.id || index+1}`;
+        let username = displayName.replace(/\s+/g,'').toLowerCase();
+        if(!users[username]){
+            users[username] = { password:'123', type:'student', displayName: displayName };
+        }
+    });
+}
+
+function login(event){
+    event.preventDefault();
+    const username=document.getElementById('username').value.toLowerCase();
+    const password=document.getElementById('password').value;
+    const user=users[username];
+    if(user && user.password===password){
+        currentUser={...user, username};
+        loginScreen.style.display='none';
+        mainApp.style.display='block';
+        document.getElementById('userInfo').textContent=`مرحباً، ${currentUser.displayName}`;
+        renderBoard();
+    } else {
+        const errorDiv=document.getElementById('errorMessage');
+        errorDiv.textContent='اسم المستخدم أو كلمة المرور غير صحيحة';
+        errorDiv.style.display='block';
+    }
+}
+
+function logout(){
+    currentUser=null;
+    mainApp.style.display='none';
+    loginScreen.style.display='flex';
+    document.getElementById('username').value='';
+    document.getElementById('password').value='';
+}
+
+function renderBoard(){
+    const grid=document.getElementById('achievementGrid');
+    grid.innerHTML='';
+    boardData.forEach(cardData=>{
+        const card=document.createElement('div');
+        card.className='sticky-note';
+        const isAdmin=currentUser.type==='admin';
+        const isOwner=currentUser.type==='student' && currentUser.displayName===cardData.name;
+        const canEdit=isAdmin||isOwner;
+        const colorClass=colors[cardData.id%colors.length];
+        const firstLetter=cardData.name?cardData.name.charAt(0):'?';
+        const photoHTML=cardData.photo?`<img src="${cardData.photo}" alt="Profile Photo">`:`<span>${firstLetter}</span>`;
+
+        card.innerHTML=`
+            <div class="name-label">${cardData.name}</div>
+            <div class="profile-circle ${colorClass}">${photoHTML}</div>
+            <div class="writing-area">
+              <textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit?'disabled':''}>${cardData.achievement}</textarea>
+              ${canEdit ? `<input type="text" class="photo-input" placeholder="رابط الصورة..." value="${cardData.photo||''}">` : ''}
+              ${canEdit ? `<button class="save-btn">💾 حفظ</button>` : ''}
+            </div>
+        `;
+
+        if(canEdit){
+            const textarea=card.querySelector('.achievement-text');
+            const photoInput=card.querySelector('.photo-input');
+            const saveBtn=card.querySelector('.save-btn');
+            let originalAchievement=textarea.value;
+            let originalPhoto=photoInput.value;
+
+            textarea.addEventListener('input',()=> toggleSaveBtn());
+            photoInput.addEventListener('input',()=> toggleSaveBtn());
+
+            function toggleSaveBtn(){
+                if(textarea.value!==originalAchievement || photoInput.value!==originalPhoto){
+                    saveBtn.style.display='block';
+                } else {
+                    saveBtn.style.display='none';
+                }
+            }
+
+            saveBtn.addEventListener('click',()=>{
+                saveBtn.textContent="⏳ جاري الحفظ...";
+                saveBtn.disabled = true;
+                
+                // حفظ في Google Sheet باستخدام JSONP فقط
+                saveToSheetWithJSONP(cardData.id, textarea.value, photoInput.value)
+                    .then(() => {
+                        // تحديث البيانات المحلية
+                        originalAchievement = textarea.value;
+                        originalPhoto = photoInput.value;
+                        boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
+                        boardData.find(item => item.id === cardData.id).photo = originalPhoto;
+                        
+                        saveBtn.textContent = "✅ تم الحفظ";
+                        setTimeout(() => {
+                            saveBtn.style.display = 'none';
+                            saveBtn.textContent = "�� حفظ";
+                            saveBtn.disabled = false;
+                        }, 1500);
+                    })
+                    .catch(error => {
+                        console.error('خطأ في الحفظ:', error);
+                        saveBtn.textContent = "❌ خطأ في الحفظ";
+                        saveBtn.disabled = false;
+                        setTimeout(() => {
+                            saveBtn.textContent = "💾 حفظ";
+                        }, 2000);
+                    });
+            });
+        }
+
+        grid.appendChild(card);
+    });
+}
+
+// دالة لحفظ البيانات في Google Sheet باستخدام JSONP فقط
+function saveToSheetWithJSONP(id, achievement, photo) {
+    return new Promise((resolve, reject) => {
+        let completedOperations = 0;
+        let hasError = false;
+        
+        // حفظ الإنجاز
+        const achievementCallback = 'achievementCallback' + Date.now() + Math.random();
+        window[achievementCallback] = (result) => {
+            console.log('نتيجة حفظ الإنجاز:', result);
+            completedOperations++;
+            if (result.result !== 'success') {
+                hasError = true;
+                reject(new Error(result.message));
+                return;
+            }
+            if (completedOperations === 2 && !hasError) {
+                resolve(true);
+            }
+        };
+        
+        const achievementScript = document.createElement('script');
+        const achievementData = {
+            action: 'update',
+            id: id,
+            field: 'achievement',
+            value: achievement
+        };
+        achievementScript.src = `${GOOGLE_SHEET_URL}?callback=${achievementCallback}&data=${encodeURIComponent(JSON.stringify(achievementData))}`;
+        achievementScript.onerror = () => {
+            hasError = true;
+            reject(new Error('Failed to save achievement'));
+        };
+        document.head.appendChild(achievementScript);
+        
+        // حفظ الصورة
+        const photoCallback = 'photoCallback' + Date.now() + Math.random();
+        window[photoCallback] = (result) => {
+            console.log('نتيجة حفظ الصورة:', result);
+            completedOperations++;
+            if (result.result !== 'success') {
+                hasError = true;
+                reject(new Error(result.message));
+                return;
+            }
+            if (completedOperations === 2 && !hasError) {
+                resolve(true);
+            }
+        };
+        
+        const photoScript = document.createElement('script');
+        const photoData = {
+            action: 'update',
+            id: id,
+            field: 'photo',
+            value: photo
+        };
+        photoScript.src = `${GOOGLE_SHEET_URL}?callback=${photoCallback}&data=${encodeURIComponent(JSON.stringify(photoData))}`;
+        photoScript.onerror = () => {
+            hasError = true;
+            reject(new Error('Failed to save photo'));
+        };
+        document.head.appendChild(photoScript);
+        
+        // تنظيف الـ callbacks بعد 15 ثانية
+        setTimeout(() => {
+            if (window[achievementCallback]) {
+                delete window[achievementCallback];
+            }
+            if (window[photoCallback]) {
+                delete window[photoCallback];
+            }
+            if (document.head.contains(achievementScript)) {
+                document.head.removeChild(achievementScript);
+            }
+            if (document.head.contains(photoScript)) {
+                document.head.removeChild(photoScript);
+            }
+        }, 15000);
+    });
+}
+
+function addNewCard(){
+    const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
+    if (existingCard) {
+        alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.');
+        return;
+    }
+
+    const newId=Date.now(); 
+    const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
+    
+    // حفظ في Google Sheet باستخدام JSONP
+    const callback = 'addCallback' + Date.now() + Math.random();
+    window[callback] = (result) => {
+        console.log('نتيجة إضافة البطاقة:', result);
+        if (document.head.contains(script)) {
+            document.head.removeChild(script);
+        }
+        delete window[callback];
+        if (result.result === 'success') {
+            boardData.push(newRow);
+            renderBoard();
+        } else {
+            alert("خطأ في إضافة البطاقة: " + result.message);
+        }
+    };
+    
+    const script = document.createElement('script');
+    const data = { action: 'add', row: newRow };
+    script.src = `${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
+    script.onerror = () => {
+        alert("مشكلة في الشبكة أو الخادم");
+    };
+    document.head.appendChild(script);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const script=document.createElement('script');
+    script.src=`${GOOGLE_SHEET_URL}?callback=loadDataFromSheet`;
+    document.body.appendChild(script);
+});
+</script>
+</body>
+</html>
