@@ -77,6 +77,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 </div>
 
 <script>
+// !!! تذكر أن تضع رابط الـ Web App الخاص بك هنا
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
 let currentUser=null;
 let boardData=[];
@@ -181,7 +182,8 @@ function renderBoard(){
                 saveBtn.textContent="⏳ جاري الحفظ...";
                 fetch(GOOGLE_SHEET_URL,{
                     method:'POST',
-                    headers:{'Content-Type':'application/json'},
+                    // ✨ التعديل الأول لحل مشكلة CORS
+                    headers:{'Content-Type':'text/plain;charset=utf-8'},
                     body: JSON.stringify({ 
                         action:'update', 
                         id:cardData.id, 
@@ -193,7 +195,8 @@ function renderBoard(){
                     if(data.result==='success'){
                         return fetch(GOOGLE_SHEET_URL,{
                             method:'POST',
-                            headers:{'Content-Type':'application/json'},
+                            // ✨ هنا أيضاً تم التعديل
+                            headers:{'Content-Type':'text/plain;charset=utf-8'},
                             body: JSON.stringify({ 
                                 action:'update', 
                                 id:cardData.id, 
@@ -207,9 +210,13 @@ function renderBoard(){
                     if(photoRes.result==='success'){
                         originalAchievement=textarea.value;
                         originalPhoto=photoInput.value;
+                        boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
+                        boardData.find(item => item.id === cardData.id).photo = originalPhoto;
                         saveBtn.textContent="✅ تم الحفظ";
-                        setTimeout(()=> saveBtn.style.display='none',1500);
-                        renderBoard();
+                        setTimeout(()=> {
+                            saveBtn.style.display='none';
+                            saveBtn.textContent = "💾 حفظ";
+                        }, 1500);
                     } else {
                         saveBtn.textContent="❌ خطأ";
                     }
@@ -226,11 +233,19 @@ function renderBoard(){
 }
 
 function addNewCard(){
+    // منع إضافة بطاقة إذا كان المستخدم لديه بطاقة فارغة بالفعل
+    const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
+    if (existingCard) {
+        alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.');
+        return;
+    }
+
     const newId=Date.now(); 
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
     fetch(GOOGLE_SHEET_URL,{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        // ✨ التعديل الثالث لحل مشكلة CORS
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ action:'add', row:newRow })
     }).then(r=>r.json())
     .then(data=>{
@@ -240,7 +255,10 @@ function addNewCard(){
         } else {
             alert("خطأ: "+data.message);
         }
-    }).catch(err=> alert("مشكلة بالشبكة"));
+    }).catch(err=> {
+      console.error(err);
+      alert("مشكلة بالشبكة أو خطأ في الخادم");
+    });
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
