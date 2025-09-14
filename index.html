@@ -77,6 +77,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 </div>
 
 <script>
+// Replace this with your actual Google Apps Script URL
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
 let currentUser=null;
 let boardData=[];
@@ -84,16 +85,31 @@ const users={ admin:{ password:'admin123', type:'admin', displayName:'المدي
 const colors=['peach','mint','lavender','pink','sky'];
 
 function loadDataFromSheet(result){
+    console.log('Received data:', result);
     if(result.result!=='success'){
         document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
         return;
     }
-    boardData=result.data.map(item=>({ 
-        id:parseInt(item.id,10), 
-        name:item.name, 
-        achievement:item.achievement||'', 
-        photo:item.photo||null 
-    }));
+    
+    // Filter out empty rows and process data
+    boardData = result.data
+        .filter(item => item.id && item.id !== '') // Only keep rows with valid IDs
+        .map(item=>({ 
+            id: parseInt(item.id, 10), 
+            name: item.name || `مستخدم ${item.id}`, 
+            achievement: item.achievement || '', 
+            photo: item.photo || null 
+        }));
+    
+    // If no valid data, create some sample data for demo
+    if (boardData.length === 0) {
+        boardData = [
+            { id: 1, name: 'أحمد محمد', achievement: 'أكملت مشروع البرمجة', photo: '' },
+            { id: 2, name: 'فاطمة علي', achievement: 'تعلمت لغة جديدة', photo: '' },
+            { id: 3, name: 'محمد أحمد', achievement: 'حسنت مهاراتي في الرياضيات', photo: '' }
+        ];
+    }
+    
     populateUsersFromBoardData();
     document.getElementById('loading').style.display='none';
     document.getElementById('loginScreen').style.display='flex';
@@ -102,10 +118,9 @@ function loadDataFromSheet(result){
 function populateUsersFromBoardData(){
     boardData.forEach((card,index)=>{
         let displayName = card.name && card.name.trim() !== '' ? card.name : `user_${card.id || index+1}`;
-        let username = displayName.replace(/\s+|!/g,'').toLowerCase();
+        let username = displayName.replace(/\s+/g,'').toLowerCase();
         if(!users[username]){
             users[username] = { password:'123', type:'student', displayName: displayName };
-            if(!card.name || card.name.trim()==='') card.name = displayName;
         }
     });
 }
@@ -179,78 +194,85 @@ function renderBoard(){
 
             saveBtn.addEventListener('click',()=>{
                 saveBtn.textContent="⏳ جاري الحفظ...";
+                saveBtn.disabled = true;
                 
-                // Use JSONP for POST requests to avoid CORS
-                const updateAchievement = () => {
-                    return new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        const callbackName = 'updateCallback' + Date.now();
-                        window[callbackName] = (result) => {
-                            document.head.removeChild(script);
-                            delete window[callbackName];
-                            if (result.result === 'success') {
-                                resolve(result);
-                            } else {
-                                reject(new Error(result.message));
-                            }
-                        };
-                        const data = {
-                            action: 'update',
-                            id: cardData.id,
-                            field: 'achievement',
-                            value: textarea.value
-                        };
-                        script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
-                        document.head.appendChild(script);
+                // Save to Google Sheet using fetch
+                saveToSheet(cardData.id, textarea.value, photoInput.value)
+                    .then(() => {
+                        // Update local data
+                        originalAchievement = textarea.value;
+                        originalPhoto = photoInput.value;
+                        boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
+                        boardData.find(item => item.id === cardData.id).photo = originalPhoto;
+                        
+                        saveBtn.textContent = "✅ تم الحفظ";
+                        setTimeout(() => {
+                            saveBtn.style.display = 'none';
+                            saveBtn.textContent = "�� حفظ";
+                            saveBtn.disabled = false;
+                        }, 1500);
+                    })
+                    .catch(error => {
+                        console.error('Save error:', error);
+                        saveBtn.textContent = "❌ خطأ في الحفظ";
+                        saveBtn.disabled = false;
+                        setTimeout(() => {
+                            saveBtn.textContent = "💾 حفظ";
+                        }, 2000);
                     });
-                };
-
-                const updatePhoto = () => {
-                    return new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        const callbackName = 'photoCallback' + Date.now();
-                        window[callbackName] = (result) => {
-                            document.head.removeChild(script);
-                            delete window[callbackName];
-                            if (result.result === 'success') {
-                                resolve(result);
-                            } else {
-                                reject(new Error(result.message));
-                            }
-                        };
-                        const data = {
-                            action: 'update',
-                            id: cardData.id,
-                            field: 'photo',
-                            value: photoInput.value
-                        };
-                        script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
-                        document.head.appendChild(script);
-                    });
-                };
-
-                updateAchievement()
-                .then(() => updatePhoto())
-                .then(() => {
-                    originalAchievement = textarea.value;
-                    originalPhoto = photoInput.value;
-                    boardData.find(item => item.id === cardData.id).achievement = originalAchievement;
-                    boardData.find(item => item.id === cardData.id).photo = originalPhoto;
-                    saveBtn.textContent = "✅ تم الحفظ";
-                    setTimeout(() => {
-                        saveBtn.style.display = 'none';
-                        saveBtn.textContent = "💾 حفظ";
-                    }, 1500);
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    saveBtn.textContent = "❌ خطأ";
-                });
             });
         }
 
         grid.appendChild(card);
     });
+}
+
+// Function to save data to Google Sheet
+async function saveToSheet(id, achievement, photo) {
+    try {
+        // First save achievement
+        const achievementResponse = await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'update',
+                id: id,
+                field: 'achievement',
+                value: achievement
+            })
+        });
+        
+        const achievementResult = await achievementResponse.json();
+        if (achievementResult.result !== 'success') {
+            throw new Error(achievementResult.message);
+        }
+        
+        // Then save photo
+        const photoResponse = await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'update',
+                id: id,
+                field: 'photo',
+                value: photo
+            })
+        });
+        
+        const photoResult = await photoResponse.json();
+        if (photoResult.result !== 'success') {
+            throw new Error(photoResult.message);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error saving to sheet:', error);
+        throw error;
+    }
 }
 
 function addNewCard(){
@@ -263,22 +285,30 @@ function addNewCard(){
     const newId=Date.now(); 
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
     
-    // Use JSONP for POST requests
-    const script = document.createElement('script');
-    const callbackName = 'addCallback' + Date.now();
-    window[callbackName] = (result) => {
-        document.head.removeChild(script);
-        delete window[callbackName];
-        if (result.result === 'success') {
+    // Save to Google Sheet first
+    fetch(GOOGLE_SHEET_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'add',
+            row: newRow
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.result === 'success') {
             boardData.push(newRow);
             renderBoard();
         } else {
-            alert("خطأ: " + result.message);
+            alert("خطأ في إضافة البطاقة: " + data.message);
         }
-    };
-    const data = { action: 'add', row: newRow };
-    script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
-    document.head.appendChild(script);
+    })
+    .catch(error => {
+        console.error('Error adding card:', error);
+        alert("مشكلة في الشبكة أو الخادم");
+    });
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
