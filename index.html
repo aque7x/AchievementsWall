@@ -181,8 +181,7 @@ function renderBoard(){
                 saveBtn.textContent="⏳ جاري الحفظ...";
                 fetch(GOOGLE_SHEET_URL,{
                     method:'POST',
-                    // ✅  هذا هو التعديل الأساسي لحل المشكلة
-                    headers:{'Content-Type':'text/plain;charset=utf-8'},
+                    headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ 
                         action:'update', 
                         id:cardData.id, 
@@ -194,8 +193,7 @@ function renderBoard(){
                     if(data.result==='success'){
                         return fetch(GOOGLE_SHEET_URL,{
                             method:'POST',
-                            // ✅  وهنا أيضاً
-                            headers:{'Content-Type':'text/plain;charset=utf-8'},
+                            headers:{'Content-Type':'application/json'},
                             body: JSON.stringify({ 
                                 action:'update', 
                                 id:cardData.id, 
@@ -242,8 +240,7 @@ function addNewCard(){
     const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
     fetch(GOOGLE_SHEET_URL,{
         method:'POST',
-        // ✅  وهنا أيضاً
-        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ action:'add', row:newRow })
     }).then(r=>r.json())
     .then(data=>{
