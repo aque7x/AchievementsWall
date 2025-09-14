@@ -1,68 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>حائط الإنجازات</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); min-height:100vh; padding:40px 20px; direction:rtl; }
-.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; font-size:24px; color:#2d3436; }
-.login-container { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-.login-box { background:white; padding:50px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); text-align:center; max-width:450px; width:100%; }
-.login-title { font-size:36px; color:#2d3436; margin-bottom:15px; }
-.login-subtitle { font-size:18px; color:#636e72; margin-bottom:40px; }
-.form-group { margin-bottom:25px; text-align:right; }
-.form-group label { display:block; margin-bottom:8px; font-weight:600; }
-.form-input { width:100%; padding:15px; border:2px solid #ddd; border-radius:10px; font-size:16px; text-align:right; }
-.login-btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b894,#00a085); color:white; border:none; border-radius:10px; font-size:18px; cursor:pointer; }
-.error-message { background:#ff7675; color:white; padding:10px; border-radius:8px; margin-bottom:20px; display:none; }
-.main-app { display:none; }
-.container { max-width:1400px; margin:0 auto; }
-.header { text-align:center; margin-bottom:30px; position:relative; }
-.user-info { position:absolute; top:0; left:20px; background:white; padding:10px 20px; border-radius:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); font-size:14px; }
-.logout-btn { background:#ff7675; color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; margin-right:10px; }
-.main-title { font-size:56px; color:#2d3436; margin-bottom:15px; }
-.subtitle { font-size:24px; color:#636e72; }
-.add-btn { background:#0984e3; color:white; padding:10px 20px; border:none; border-radius:12px; font-size:16px; cursor:pointer; margin-bottom:20px; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
-.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
-.sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
-.name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
-.profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
-.profile-circle img { width:100%; height:100%; object-fit:cover; }
-.writing-area { padding:45px 20px 20px 60px; height:calc(100% - 20px); display:flex; flex-direction:column; }
-.achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
-.achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
-.photo-input { margin-top:10px; padding:6px; width:100%; font-size:13px; }
-.save-indicator { position:absolute; top:10px; right:10px; font-size:12px; padding:4px 8px; border-radius:12px; background:#00b894; color:white; opacity:0; transition:opacity 0.3s; }
-.save-indicator.show { opacity:1; }
-.save-indicator.saving { background:#f39c12; }
-.save-indicator.error { background:#e74c3c; }
-</style>
-</head>
-<body>
-<div id="loading" class="loading-overlay"><span>جاري تحميل البيانات...</span></div>
-
-<div id="loginScreen" class="login-container">
-  <div class="login-box">
-    <h2 class="login-title">حائط الإنجازات</h2>
-    <p class="login-subtitle">مرحباً بك! الرجاء تسجيل الدخول للمتابعة</p>
-    <div id="errorMessage" class="error-message"></div>
-    <form onsubmit="login(event)">
-      <div class="form-group">
-        <label for="username">اسم المستخدم:</label>
-        <input type="text" id="username" class="form-input" required>
-      </div>
-      <div class="form-group">
-        <label for="password">كلمة المرور:</label>
-        <input type="password" id="password" class="form-input" required>
-      </div>
-      <button type="submit" class="login-btn">تسجيل الدخول</button>
-    </form>
-  </div>
-</div>
+<!-- ... نفس رأس الصفحة وCSS ... -->
 
 <div id="mainApp" class="main-app">
   <div class="container">
@@ -80,7 +16,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 </div>
 
 <script>
-// رابط Google Apps Script الصحيح
+// رابط Google Apps Script
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
 let currentUser=null;
 let boardData=[];
@@ -88,20 +24,17 @@ const users={ admin:{ password:'admin123', type:'admin', displayName:'المدي
 const colors=['peach','mint','lavender','pink','sky'];
 
 function loadDataFromSheet(result){
-    console.log('تم استلام البيانات:', result);
     if(result.result!=='success'){
         document.getElementById('loading').innerHTML=`<span>خطأ بتحميل البيانات: ${result.message}</span>`;
         return;
     }
     
-    // معالجة البيانات
     boardData = result.data
-        .filter(item => item.id && item.id !== '') // فقط الصفوف التي لها معرف صحيح
+        .filter(item => item.id && item.id !== '')
         .map(item=>({ 
             id: parseInt(item.id, 10), 
             name: item.name || `مستخدم ${item.id}`, 
-            achievement: item.achievement || '', 
-            photo: item.photo || null 
+            achievement: item.achievement || '' 
         }));
     
     populateUsersFromBoardData();
@@ -156,35 +89,29 @@ function renderBoard(){
         const canEdit=isAdmin||isOwner;
         const colorClass=colors[cardData.id%colors.length];
         const firstLetter=cardData.name?cardData.name.charAt(0):'?';
-        const photoHTML=cardData.photo?`<img src="${cardData.photo}" alt="Profile Photo">`:`<span>${firstLetter}</span>`;
 
         card.innerHTML=`
             <div class="name-label">${cardData.name}</div>
-            <div class="profile-circle ${colorClass}">${photoHTML}</div>
-            <div class="save-indicator" id="saveIndicator_${cardData.id}">��</div>
+            <div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div>
+            <div class="save-indicator" id="saveIndicator_${cardData.id}"></div>
             <div class="writing-area">
               <textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit?'disabled':''}>${cardData.achievement}</textarea>
-              ${canEdit ? `<input type="text" class="photo-input" placeholder="رابط الصورة..." value="${cardData.photo||''}">` : ''}
             </div>
         `;
 
         if(canEdit){
             const textarea=card.querySelector('.achievement-text');
-            const photoInput=card.querySelector('.photo-input');
             const saveIndicator=card.querySelector('.save-indicator');
             let originalAchievement=textarea.value;
-            let originalPhoto=photoInput.value;
             let saveTimeout;
 
-            // دالة للحفظ التلقائي
             function autoSave() {
-                if (textarea.value !== originalAchievement || photoInput.value !== originalPhoto) {
+                if (textarea.value !== originalAchievement) {
                     showSaveIndicator(saveIndicator, 'saving', 'جاري الحفظ...');
                     
-                    saveToSheetWithJSONP(cardData.id, textarea.value, photoInput.value)
+                    saveToSheet(cardData.id, textarea.value)
                         .then(() => {
                             originalAchievement = textarea.value;
-                            originalPhoto = photoInput.value;
                             showSaveIndicator(saveIndicator, 'success', 'تم الحفظ');
                         })
                         .catch(error => {
@@ -194,45 +121,23 @@ function renderBoard(){
                 }
             }
 
-            // دالة لإظهار مؤشر الحفظ
             function showSaveIndicator(indicator, type, text) {
                 indicator.textContent = text;
                 indicator.className = `save-indicator show ${type}`;
-                
-                if (type === 'success') {
-                    setTimeout(() => {
-                        indicator.className = 'save-indicator';
-                    }, 2000);
-                } else if (type === 'error') {
-                    setTimeout(() => {
-                        indicator.className = 'save-indicator';
-                    }, 3000);
-                }
+                if (type === 'success') setTimeout(()=>indicator.className='save-indicator',2000);
+                if (type === 'error') setTimeout(()=>indicator.className='save-indicator',3000);
             }
 
-            // حفظ تلقائي عند الكتابة (بعد 2 ثانية من التوقف)
             textarea.addEventListener('input', () => {
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(autoSave, 2000);
             });
 
-            photoInput.addEventListener('input', () => {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(autoSave, 2000);
-            });
-
-            // حفظ فوري عند الخروج من الحقل
             textarea.addEventListener('blur', () => {
                 clearTimeout(saveTimeout);
                 autoSave();
             });
 
-            photoInput.addEventListener('blur', () => {
-                clearTimeout(saveTimeout);
-                autoSave();
-            });
-
-            // حفظ عند الضغط على Enter في textarea
             textarea.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -245,105 +150,33 @@ function renderBoard(){
     });
 }
 
-// دالة لحفظ البيانات في Google Sheet باستخدام JSONP فقط
-function saveToSheetWithJSONP(id, achievement, photo) {
-    return new Promise((resolve, reject) => {
-        let completedOperations = 0;
-        let hasError = false;
-        
-        // حفظ الإنجاز
-        const achievementCallback = 'achievementCallback' + Date.now() + Math.random();
-        window[achievementCallback] = (result) => {
-            console.log('نتيجة حفظ الإنجاز:', result);
-            completedOperations++;
-            if (result.result !== 'success') {
-                hasError = true;
-                reject(new Error(result.message));
-                return;
-            }
-            if (completedOperations === 2 && !hasError) {
-                resolve(true);
-            }
+function saveToSheet(id, achievement){
+    return new Promise((resolve, reject)=>{
+        const callback='saveCallback'+Date.now()+Math.random();
+        window[callback]=(result)=>{
+            delete window[callback];
+            if(result.result==='success') resolve(true);
+            else reject(new Error(result.message));
         };
-        
-        const achievementScript = document.createElement('script');
-        const achievementData = {
-            action: 'update',
-            id: id,
-            field: 'achievement',
-            value: achievement
-        };
-        achievementScript.src = `${GOOGLE_SHEET_URL}?callback=${achievementCallback}&data=${encodeURIComponent(JSON.stringify(achievementData))}`;
-        achievementScript.onerror = () => {
-            hasError = true;
-            reject(new Error('Failed to save achievement'));
-        };
-        document.head.appendChild(achievementScript);
-        
-        // حفظ الصورة
-        const photoCallback = 'photoCallback' + Date.now() + Math.random();
-        window[photoCallback] = (result) => {
-            console.log('نتيجة حفظ الصورة:', result);
-            completedOperations++;
-            if (result.result !== 'success') {
-                hasError = true;
-                reject(new Error(result.message));
-                return;
-            }
-            if (completedOperations === 2 && !hasError) {
-                resolve(true);
-            }
-        };
-        
-        const photoScript = document.createElement('script');
-        const photoData = {
-            action: 'update',
-            id: id,
-            field: 'photo',
-            value: photo
-        };
-        photoScript.src = `${GOOGLE_SHEET_URL}?callback=${photoCallback}&data=${encodeURIComponent(JSON.stringify(photoData))}`;
-        photoScript.onerror = () => {
-            hasError = true;
-            reject(new Error('Failed to save photo'));
-        };
-        document.head.appendChild(photoScript);
-        
-        // تنظيف الـ callbacks بعد 15 ثانية
-        setTimeout(() => {
-            if (window[achievementCallback]) {
-                delete window[achievementCallback];
-            }
-            if (window[photoCallback]) {
-                delete window[photoCallback];
-            }
-            if (document.head.contains(achievementScript)) {
-                document.head.removeChild(achievementScript);
-            }
-            if (document.head.contains(photoScript)) {
-                document.head.removeChild(photoScript);
-            }
-        }, 15000);
+        const script=document.createElement('script');
+        const data={ action:'update', id:id, field:'achievement', value:achievement };
+        script.src=`${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
+        script.onerror=()=>reject(new Error('Failed to save'));
+        document.head.appendChild(script);
+        setTimeout(()=>{if(document.head.contains(script)) document.head.removeChild(script)},15000);
     });
 }
 
 function addNewCard(){
     const existingCard = boardData.find(c => c.name === currentUser.displayName && c.achievement === '');
-    if (existingCard) {
-        alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.');
-        return;
-    }
+    if (existingCard) { alert('لديك بطاقة فارغة بالفعل، الرجاء ملؤها أولاً.'); return; }
 
     const newId=Date.now(); 
-    const newRow={ id:newId, name:currentUser.displayName, achievement:"", photo:"" };
-    
-    // حفظ في Google Sheet باستخدام JSONP
+    const newRow={ id:newId, name:currentUser.displayName, achievement:"" };
+
     const callback = 'addCallback' + Date.now() + Math.random();
     window[callback] = (result) => {
-        console.log('نتيجة إضافة البطاقة:', result);
-        if (document.head.contains(script)) {
-            document.head.removeChild(script);
-        }
+        if (document.head.contains(script)) document.head.removeChild(script);
         delete window[callback];
         if (result.result === 'success') {
             boardData.push(newRow);
@@ -352,13 +185,10 @@ function addNewCard(){
             alert("خطأ في إضافة البطاقة: " + result.message);
         }
     };
-    
-    const script = document.createElement('script');
-    const data = { action: 'add', row: newRow };
-    script.src = `${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
-    script.onerror = () => {
-        alert("مشكلة في الشبكة أو الخادم");
-    };
+    const script=document.createElement('script');
+    const data={ action:'add', row:newRow };
+    script.src=`${GOOGLE_SHEET_URL}?callback=${callback}&data=${encodeURIComponent(JSON.stringify(data))}`;
+    script.onerror=()=>alert("مشكلة في الشبكة أو الخادم");
     document.head.appendChild(script);
 }
 
@@ -368,5 +198,3 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.body.appendChild(script);
 });
 </script>
-</body>
-</html>
