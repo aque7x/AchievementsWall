@@ -1,244 +1,323 @@
-// --- المتغيرات العامة ---
-const SHEETS = {
-  USERS: "Users",
-  ACHIEVEMENTS: "Achievements",
-  TASKS: "WeeklyTasks"
-};
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حائط الإنجازات</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); min-height:100vh; padding:40px 20px; direction:rtl; }
+.loading-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; font-size:24px; color:#2d3436; }
+.login-container { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+.login-box { background:white; padding:50px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); text-align:center; max-width:450px; width:100%; position:relative; }
+.login-title { font-size:36px; color:#2d3436; margin-bottom:15px; }
+.login-subtitle { font-size:18px; color:#636e72; margin-bottom:40px; }
+.form-group { margin-bottom:25px; text-align:right; }
+.form-group label { display:block; margin-bottom:8px; font-weight:600; }
+.form-input { width:100%; padding:15px; border:2px solid #ddd; border-radius:10px; font-size:16px; text-align:right; }
+.login-btn, .action-btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b894,#00a085); color:white; border:none; border-radius:10px; font-size:18px; cursor:pointer; transition: background-color 0.3s ease; }
+.login-btn:disabled, .action-btn:disabled { background: #b2bec3; cursor: not-allowed; }
+.error-message, .success-message { padding:10px; border-radius:8px; margin-bottom:20px; display:none; }
+.error-message { background:#ff7675; color:white; }
+.success-message { background:#55efc4; color:#2d3436; }
+.main-app { display:none; }
+.container { max-width:1400px; margin:0 auto; }
+.header { text-align:center; margin-bottom:30px; position:relative; }
+.user-info { position:absolute; top:0; left:20px; background:white; padding:10px 20px; border-radius:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); font-size:14px; display:flex; align-items:center; gap: 10px; }
+.logout-btn, .change-pass-btn { color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; }
+.logout-btn { background:#ff7675; }
+.change-pass-btn { background:#74b9ff; }
+.main-title { font-size:56px; color:#2d3436; margin-bottom:15px; }
+.subtitle { font-size:24px; color:#636e72; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
+.sticky-note { background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); width:220px; height:300px; position:relative; transition:all 0.3s ease; margin:0 auto; padding-bottom:40px; }
+.sticky-note:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
+.name-label { background:linear-gradient(135deg,#fab1a0 0%,#e17055 100%); color:#2d3436; padding:8px 16px; border-radius:20px; font-size:16px; position:absolute; top:-12px; right:20px; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
+.profile-circle { width:50px; height:50px; border-radius:50%; position:absolute; top:20px; left:-10px; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; overflow:hidden; background:#636e72; }
+.writing-area { padding:45px 20px 20px 60px; height:calc(100% - 20px); display:flex; flex-direction:column; }
+.achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
+.achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
+.save-status { margin-top:10px; font-size:13px; color:#636e72; height:15px; text-align:left; transition: color 0.3s ease; }
+.about-link { font-size: 14px; color: #636e72; margin-top: 20px; cursor: pointer; text-decoration: underline; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; display: none; align-items: center; justify-content: center; }
+.modal-content { background: white; padding: 40px; border-radius: 20px; max-width: 500px; width: 90%; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-content h2 { font-size: 32px; margin-bottom: 20px; color: #2d3436; }
+.modal-content p { font-size: 18px; line-height: 1.8; color: #636e72; margin-bottom: 15px; }
+.modal-content h3 { font-size: 22px; margin-top: 30px; margin-bottom: 15px; color: #00b894; }
+.close-btn { position: absolute; top: 15px; left: 20px; background: none; border: none; font-size: 30px; cursor: pointer; color: #636e72; }
+.social-links a { display: inline-block; text-decoration: none; background: #00b894; color: white; padding: 10px 20px; border-radius: 25px; margin: 5px; font-size: 16px; transition: background 0.3s ease; }
+.social-links a:hover { background: #00a085; }
+.tasks-container { background: white; max-width: 800px; margin: 40px auto; padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+.tasks-container h2 { text-align: center; font-size: 28px; color: #2d3436; margin-bottom: 25px; }
+.tasks-list { list-style: none; padding: 0; }
+.task-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #dfe6e9; font-size: 18px; }
+.task-item:last-child { border-bottom: none; }
+.task-content { flex-grow: 1; }
+.task-actions button { background: none; border: none; cursor: pointer; font-size: 16px; margin-right: 10px; }
+.task-actions .delete-btn { color: #ff7675; }
+.add-task-form { display: flex; gap: 10px; margin-top: 20px; }
+.add-task-form input { flex-grow: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; }
+.add-task-form button { padding: 12px 20px; background: #00b894; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
 
-// --- الدالة الرئيسية ---
-function doGet(e) {
-  try {
-    const action = e.parameter.action;
-
-    // توجيه الطلبات بناءً على الباراميتر 'action'
-    switch (action) {
-      case 'login':
-        return handleLogin(e);
-      case 'changePassword':
-        return handleChangePassword(e);
-      case 'getTasks':
-        return getWeeklyTasks(e);
-      case 'handleTask': // معالج واحد لكل عمليات المهام
-        return handleTaskAction(e);
-      default:
-        if (e.parameter.data) {
-          const data = JSON.parse(e.parameter.data);
-          if (data.action === 'update') {
-            return handleUpdateRequest(data, e.parameter.callback);
-          }
-        }
-        return getAchievements(e);
+@media (max-width: 768px) {
+    body {
+        padding: 20px 10px;
     }
-  } catch (error) {
-    console.error('Error in doGet:', error);
-    const response = { result: 'error', message: error.message };
-    const callback = e.parameter.callback || 'callback';
-    return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`)
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-}
-
-// --- دوال المهام الأسبوعية (جديد) ---
-function getWeeklyTasks(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.TASKS);
-  if (!sheet) throw new Error(`Sheet '${SHEETS.TASKS}' not found.`);
-  
-  if (sheet.getLastRow() < 2) { // إذا كانت الشيت فارغة أو تحتوي على العناوين فقط
-    const response = { result: 'success', data: [] };
-    return ContentService.createTextOutput(`${e.parameter.callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-
-  const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
-  const values = dataRange.getValues();
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  const data = values.map(row => {
-    let obj = {};
-    headers.forEach((header, index) => { obj[header] = row[index] || ''; });
-    return obj;
-  });
-  
-  const response = { result: 'success', data: data };
-  return ContentService.createTextOutput(`${e.parameter.callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-}
-
-function handleTaskAction(e) {
-  const callback = e.parameter.callback;
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.TASKS);
-    if (!sheet) throw new Error(`Sheet '${SHEETS.TASKS}' not found.`);
-
-    const taskAction = e.parameter.taskAction; // add, update, delete
-    
-    switch(taskAction) {
-      case 'add':
-        const taskContent = e.parameter.taskContent;
-        const newTaskId = "task_" + new Date().getTime(); // إنشاء ID فريد
-        sheet.appendRow([newTaskId, taskContent, false]);
-        return ContentService.createTextOutput(`${callback}(${JSON.stringify({ result: 'success', newTaskId: newTaskId })})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-
-      case 'delete':
-        const taskIdToDelete = e.parameter.taskId;
-        const taskIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
-        for (let i = 0; i < taskIds.length; i++) {
-          if (taskIds[i][0] == taskIdToDelete) {
-            sheet.deleteRow(i + 2);
-            return ContentService.createTextOutput(`${callback}(${JSON.stringify({ result: 'success' })})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-          }
-        }
-        throw new Error("Task ID not found for deletion.");
-
-      default:
-        throw new Error("Invalid task action.");
+    .header {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
     }
-
-  } catch (error) {
-     console.error('Error in handleTaskAction:', error);
-     const response = { result: 'error', message: error.message };
-     return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-}
-
-// --- دوال المستخدمين والإنجازات (بدون تغيير) ---
-
-function handleChangePassword(e) {
-  const callback = e.parameter.callback;
-  try {
-    const username = e.parameter.username;
-    const oldPassword = e.parameter.oldPassword;
-    const newPassword = e.parameter.newPassword;
-
-    const userSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.USERS);
-    if (!userSheet) throw new Error(`Sheet '${SHEETS.USERS}' not found.`);
-
-    const data = userSheet.getDataRange().getValues();
-    const headers = data.shift();
-    
-    const usernameIndex = headers.indexOf('username');
-    const passwordIndex = headers.indexOf('password');
-
-    let userRowIndex = -1, passwordCorrect = false;
-
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][usernameIndex] === username) {
-        userRowIndex = i + 2;
-        if (data[i][passwordIndex] == oldPassword) passwordCorrect = true;
-        break;
-      }
+    .user-info {
+        position: static;
+        width: 100%;
+        max-width: 400px;
+        flex-direction: column;
+        gap: 12px;
+        padding: 15px;
     }
-
-    if (userRowIndex === -1) throw new Error("User not found.");
-    if (!passwordCorrect) throw new Error("كلمة المرور القديمة غير صحيحة.");
-
-    userSheet.getRange(userRowIndex, passwordIndex + 1).setValue(newPassword);
-    
-    const response = { result: 'success', message: 'تم تغيير كلمة المرور بنجاح!' };
-    return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-
-  } catch (error) {
-    console.error('Error in handleChangePassword:', error);
-    const response = { result: 'error', message: error.message };
-    return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-}
-
-function handleLogin(e) {
-  const callback = e.parameter.callback;
-  try {
-    const username = e.parameter.username;
-    const password = e.parameter.password;
-    
-    const userSheet = SpreadsheetApp.getActiveSpreadreedsheet().getSheetByName(SHEETS.USERS);
-    if (!userSheet) throw new Error(`Sheet '${SHEETS.USERS}' not found.`);
-    
-    const data = userSheet.getDataRange().getValues();
-    const headers = data.shift();
-    
-    const usernameIndex = headers.indexOf('username');
-    const passwordIndex = headers.indexOf('password');
-    const displayNameIndex = headers.indexOf('displayName');
-    const typeIndex = headers.indexOf('type');
-
-    let userFound = null;
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][usernameIndex] === username) {
-        if (data[i][passwordIndex] == password) {
-          userFound = {
-            username: data[i][usernameIndex],
-            displayName: data[i][displayNameIndex],
-            type: data[i][typeIndex]
-          };
-        }
-        break;
-      }
+    .user-info span {
+        order: -1;
     }
-
-    const response = userFound ? { result: 'success', user: userFound } : { result: 'error', message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
-    return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-
-  } catch (error) {
-    console.error('Error in handleLogin:', error);
-    const response = { result: 'error', message: error.message };
-    return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-}
-
-function getAchievements(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.ACHIEVEMENTS);
-  if (!sheet) throw new Error(`Sheet '${SHEETS.ACHIEVEMENTS}' not found.`);
-  
-  if (sheet.getLastRow() <= 1) {
-    const response = { result: 'success', data: [] };
-    return ContentService.createTextOutput(`${e.parameter.callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  
-  const dataRange = sheet.getDataRange();
-  const values = dataRange.getValues();
-  const headers = values.shift();
-  
-  const data = values.map(row => {
-    let obj = {};
-    headers.forEach((header, index) => { obj[header] = row[index] || ''; });
-    return obj;
-  });
-  
-  const response = { result: 'success', data: data };
-  return ContentService.createTextOutput(`${e.parameter.callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
-}
-
-function handleUpdateRequest(request, callback) {
-  let response = {};
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.ACHIEVEMENTS);
-    if (!sheet) throw new Error(`Sheet '${SHEETS.ACHIEVEMENTS}' not found.`);
-    
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const colIndexToUpdate = headers.indexOf(request.field) + 1;
-    const idColIndex = headers.indexOf('id') + 1;
-
-    if (colIndexToUpdate === 0 || idColIndex === 0) throw new Error("Column not found.");
-    if (sheet.getLastRow() <= 1) throw new Error("No data to update.");
-
-    const ids = sheet.getRange(2, idColIndex, sheet.getLastRow() - 1, 1).getValues();
-    let rowIndexToUpdate = -1;
-    for (let i = 0; i < ids.length; i++) {
-      if (ids[i][0] == request.id) {
-        rowIndexToUpdate = i + 2;
-        break;
-      }
+    .main-title {
+        font-size: 40px;
     }
+    .subtitle {
+        font-size: 18px;
+    }
+    .login-box, .modal-content {
+        padding: 30px 25px;
+        width: 95%;
+    }
+    .login-title {
+        font-size: 28px;
+    }
+    .tasks-container {
+        padding: 20px 15px;
+    }
+    .task-item {
+        font-size: 16px;
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .add-task-form {
+        flex-direction: column;
+    }
+    .grid {
+        gap: 15px;
+    }
+    .sticky-note {
+        width: 100%;
+    }
+}
+</style>
+</head>
+<body>
+<div id="loading" class="loading-overlay"><span>جاري تحميل البيانات...</span></div>
 
-    if (rowIndexToUpdate !== -1) {
-      sheet.getRange(rowIndexToUpdate, colIndexToUpdate).setValue(request.value);
-      response = { result: 'success', message: 'Updated successfully' };
+<div id="loginScreen" class="login-container">
+  <div class="login-box">
+    <h2 class="login-title">حائط الإنجازات</h2>
+    <p class="login-subtitle">مرحباً بك! الرجاء تسجيل الدخول للمتابعة</p>
+    <div id="errorMessage" class="error-message"></div>
+    <form onsubmit="login(event)">
+      <div class="form-group"><label for="username">اسم المستخدم:</label><input type="text" id="username" class="form-input" required></div>
+      <div class="form-group"><label for="password">كلمة المرور:</label><input type="password" id="password" class="form-input" required></div>
+      <button type="submit" class="login-btn">تسجيل الدخول</button>
+    </form>
+    <div class="about-link" onclick="toggleAboutModal(true)">عن المطور</div>
+  </div>
+</div>
+
+<div id="mainApp" class="main-app">
+  <div class="container">
+    <div class="header">
+      <div class="user-info">
+        <button class="change-pass-btn" onclick="togglePasswordModal(true)">تغيير كلمة السر</button>
+        <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
+        <span id="userInfo"></span>
+      </div>
+      <h1 class="main-title">حائط الإنجازات</h1>
+    </div>
+    
+    <div id="tasksSection" class="tasks-container">
+      <h2>مهام هذا الأسبوع</h2>
+      <ul id="tasksList" class="tasks-list"></ul>
+      <div id="adminTaskControls" style="display: none;">
+        <form onsubmit="handleAddTask(event)" class="add-task-form">
+          <input type="text" id="newTaskContent" placeholder="أضف مهمة جديدة..." required>
+          <button type="submit">إضافة</button>
+        </form>
+      </div>
+    </div>
+
+    <p class="subtitle" style="text-align: center; margin-top: 50px;">شنو حققت هذا الأسبوع؟</p>
+    <div class="grid" id="achievementGrid"></div>
+  </div>
+</div>
+
+<div id="aboutModal" class="modal-overlay" onclick="toggleAboutModal(false)"><div class="modal-content" onclick="event.stopPropagation()"><button class="close-btn" onclick="toggleAboutModal(false)">&times;</button><h2>عن المطور</h2><p><strong>بلال زامل</strong><br>طالب مرحلة ثانية، علوم الحاسوب - جامعة الأنبار.</p><h3>الهدف من المنصة</h3><p>تهدف هذه المنصة إلى توفير مساحة تشاركية للطلاب لتوثيق ومشاركة إنجازاتهم الأسبوعية.</p><h3>تواصل معي</h3><div class="social-links"><a href="https://instagram.com/bilalcodes1" target="_blank">انستغرام</a><a href="https://t.me/bilalcodes1" target="_blank">تيليجرام</a></div></div></div>
+<div id="passwordModal" class="modal-overlay" onclick="togglePasswordModal(false)"><div class="modal-content" onclick="event.stopPropagation()"><button class="close-btn" onclick="togglePasswordModal(false)">&times;</button><h2>تغيير كلمة المرور</h2><div id="passwordChangeError" class="error-message"></div><div id="passwordChangeSuccess" class="success-message"></div><form id="passwordChangeForm" onsubmit="handleChangePassword(event)"><div class="form-group"><label for="oldPassword">كلمة المرور الحالية:</label><input type="password" id="oldPassword" class="form-input" required></div><div class="form-group"><label for="newPassword">كلمة المرور الجديدة:</label><input type="password" id="newPassword" class="form-input" required></div><div class="form-group"><label for="confirmNewPassword">تأكيد كلمة المرور الجديدة:</label><input type="password" id="confirmNewPassword" class="form-input" required></div><button type="submit" class="action-btn">حفظ التغييرات</button></form></div></div>
+
+<script>
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';   
+let currentUser = null;
+let boardData = [];
+let weeklyTasks = [];
+const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
+let saveTimer;
+
+document.addEventListener('DOMContentLoaded', fetchInitialData);
+
+function fetchInitialData() {
+    document.getElementById('loading').style.display = 'flex';
+    const scriptAchievements = document.createElement('script');
+    scriptAchievements.src = `${GOOGLE_SHEET_URL}?callback=loadDataFromSheet`;
+    document.body.appendChild(scriptAchievements);
+    
+    const scriptTasks = document.createElement('script');
+    scriptTasks.src = `${GOOGLE_SHEET_URL}?action=getTasks&callback=loadTasksFromSheet`;
+    document.body.appendChild(scriptTasks);
+}
+
+function loadDataFromSheet(result) {
+    if (result.result === 'success') {
+        boardData = result.data.filter(item => item.id && item.id !== '').map(item => ({
+            id: parseInt(item.id, 10), name: item.name || `مستخدم ${item.id}`, achievement: item.achievement || ''
+        }));
     } else {
-      throw new Error(`ID ${request.id} not found.`);
+        document.getElementById('loading').innerHTML = `<span>خطأ بتحميل بيانات الإنجازات: ${result.message}</span>`;
+    }
+    checkLoadingComplete();
+}
+
+function loadTasksFromSheet(result) {
+    if (result.result === 'success') {
+        weeklyTasks = result.data;
+    } else {
+        document.getElementById('loading').innerHTML = `<span>خطأ بتحميل بيانات المهام: ${result.message}</span>`;
+    }
+    checkLoadingComplete();
+}
+
+let loadedResources = 0;
+function checkLoadingComplete() {
+    loadedResources++;
+    if (loadedResources >= 2) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+    }
+}
+
+function login(event) {
+    event.preventDefault();
+    const username = document.getElementById('username').value.toLowerCase();
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('errorMessage');
+    const loginBtn = event.target.querySelector('button');
+    loginBtn.disabled = true; loginBtn.textContent = 'جاري التحقق...'; errorDiv.style.display = 'none';
+    const callbackName = 'loginCallback' + Date.now();
+    window[callbackName] = (response) => {
+        loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول';
+        if (response.result === 'success') {
+            currentUser = response.user;
+            loginScreen.style.display = 'none'; mainApp.style.display = 'block';
+            document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+            renderBoard();
+            renderTasks();
+        } else {
+            errorDiv.textContent = response.message || 'خطأ غير معروف'; errorDiv.style.display = 'block';
+        }
+        document.head.removeChild(script); delete window[callbackName];
+    };
+    const script = document.createElement('script');
+    script.src = `${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
+    script.onerror = () => { loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; };
+    document.head.appendChild(script);
+}
+
+function renderTasks() {
+    const tasksList = document.getElementById('tasksList');
+    const adminControls = document.getElementById('adminTaskControls');
+    tasksList.innerHTML = '';
+
+    if (weeklyTasks.length === 0) {
+        tasksList.innerHTML = '<li class="task-item">لا توجد مهام حالياً.</li>';
+    } else {
+        weeklyTasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            li.dataset.taskId = task.taskId;
+            
+            let adminButtons = '';
+            if (currentUser && currentUser.type === 'admin') {
+                adminButtons = `<div class="task-actions"><button class="delete-btn" onclick="handleDeleteTask('${task.taskId}', this)">🗑️ حذف</button></div>`;
+            }
+
+            li.innerHTML = `<span class="task-content">${task.taskContent}</span>${adminButtons}`;
+            tasksList.appendChild(li);
+        });
     }
 
-  } catch (error) {
-    console.error('Error in handleUpdateRequest:', error);
-    response = { result: 'error', message: error.message };
-  }
-  
-  return ContentService.createTextOutput(`${callback}(${JSON.stringify(response)})`).setMimeType(ContentService.MimeType.JAVASCRIPT);
+    if (currentUser && currentUser.type === 'admin') {
+        adminControls.style.display = 'block';
+    } else {
+        adminControls.style.display = 'none';
+    }
 }
+
+function handleAddTask(event) {
+    event.preventDefault();
+    const input = document.getElementById('newTaskContent');
+    const taskContent = input.value.trim();
+    if (!taskContent) return;
+    const callbackName = 'taskCallback' + Date.now();
+    window[callbackName] = (response) => {
+        if (response.result === 'success') {
+            weeklyTasks.push({ taskId: response.newTaskId, taskContent: taskContent, isCompleted: false });
+            renderTasks();
+            input.value = '';
+        } else {
+            alert('خطأ في إضافة المهمة: ' + response.message);
+        }
+        document.head.removeChild(script); delete window[callbackName];
+    };
+    const script = document.createElement('script');
+    script.src = `${GOOGLE_SHEET_URL}?action=handleTask&taskAction=add&taskContent=${encodeURIComponent(taskContent)}&callback=${callbackName}`;
+    document.head.appendChild(script);
+}
+
+function handleDeleteTask(taskId, buttonElement) {
+    if (!confirm('هل أنت متأكد من حذف هذه المهمة؟')) return;
+    buttonElement.textContent = '...';
+    const callbackName = 'taskCallback' + Date.now();
+    window[callbackName] = (response) => {
+        if (response.result === 'success') {
+            weeklyTasks = weeklyTasks.filter(t => t.taskId !== taskId);
+            renderTasks();
+        } else {
+            alert('خطأ في حذف المهمة: ' + response.message);
+            buttonElement.textContent = '🗑️ حذف';
+        }
+        document.head.removeChild(script); delete window[callbackName];
+    };
+    const script = document.createElement('script');
+    script.src = `${GOOGLE_SHEET_URL}?action=handleTask&taskAction=delete&taskId=${taskId}&callback=${callbackName}`;
+    document.head.appendChild(script);
+}
+
+function logout() { currentUser = null; mainApp.style.display = 'none'; loginScreen.style.display = 'flex'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('errorMessage').style.display = 'none'; }
+function renderBoard() { const grid = document.getElementById('achievementGrid'); grid.innerHTML = ''; boardData.forEach(cardData => { const card = document.createElement('div'); card.className = 'sticky-note'; const isAdmin = currentUser.type === 'admin'; const isOwner = currentUser.type === 'student' && currentUser.displayName === cardData.name; const canEdit = isAdmin || isOwner; const colorClass = colors[cardData.id % colors.length]; const firstLetter = cardData.name ? cardData.name.charAt(0) : '?'; card.innerHTML = `<div class="name-label">${cardData.name}</div><div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div><div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement}</textarea>${canEdit ? '<div class="save-status"></div>' : ''}</div>`; if (canEdit) { const textarea = card.querySelector('.achievement-text'); const saveStatus = card.querySelector('.save-status'); textarea.addEventListener('input', () => { saveStatus.textContent = '...'; saveStatus.style.color = '#636e72'; clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveStatus.textContent = "⏳ جاري الحفظ..."; saveAchievementToSheet(cardData.id, textarea.value).then(() => { saveStatus.textContent = "✅ تم الحفظ"; saveStatus.style.color = '#00b894'; const localCard = boardData.find(item => item.id === cardData.id); if (localCard) localCard.achievement = textarea.value; }).catch(error => { console.error('خطأ في الحفظ:', error); saveStatus.textContent = "❌ خطأ في الحفظ"; saveStatus.style.color = '#ff7675'; }); }, 1500); }); } grid.appendChild(card); }); }
+function saveAchievementToSheet(id, achievementText) { return new Promise((resolve, reject) => { const callbackName = 'saveCallback' + Date.now() + Math.random().toString().substr(2); window[callbackName] = (result) => { delete window[callbackName]; if (document.head.contains(script)) document.head.removeChild(script); if (result.result === 'success') resolve(true); else reject(new Error(result.message || 'Unknown error')); }; const script = document.createElement('script'); const data = { action: 'update', id: id, field: 'achievement', value: achievementText }; script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`; script.onerror = () => { delete window[callbackName]; reject(new Error('فشل في الاتصال بالخادم')); }; document.head.appendChild(script); }); }
+function handleChangePassword(event) { event.preventDefault(); if (!currentUser) return; const oldPassword = document.getElementById('oldPassword').value; const newPassword = document.getElementById('newPassword').value; const confirmNewPassword = document.getElementById('confirmNewPassword').value; const errorDiv = document.getElementById('passwordChangeError'); const successDiv = document.getElementById('passwordChangeSuccess'); const submitBtn = document.getElementById('passwordChangeForm').querySelector('button'); errorDiv.style.display = 'none'; successDiv.style.display = 'none'; if (newPassword !== confirmNewPassword) { errorDiv.textContent = 'كلمتا المرور الجديدتان غير متطابقتين.'; errorDiv.style.display = 'block'; return; } if (newPassword.length < 4) { errorDiv.textContent = 'يجب أن تكون كلمة المرور الجديدة 4 أحرف على الأقل.'; errorDiv.style.display = 'block'; return; } submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...'; const callbackName = 'passwordChangeCallback' + Date.now(); window[callbackName] = (response) => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; if (response.result === 'success') { successDiv.textContent = response.message; successDiv.style.display = 'block'; document.getElementById('passwordChangeForm').reset(); setTimeout(() => togglePasswordModal(false), 2000); } else { errorDiv.textContent = response.message; errorDiv.style.display = 'block'; } document.head.removeChild(script); delete window[callbackName]; }; const script = document.createElement('script'); const params = `action=changePassword&username=${encodeURIComponent(currentUser.username)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}&callback=${callbackName}`; script.src = `${GOOGLE_SHEET_URL}?${params}`; script.onerror = () => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; }; document.head.appendChild(script); }
+function toggleAboutModal(show) { const modal = document.getElementById('aboutModal'); modal.style.display = show ? 'flex' : 'none'; }
+function togglePasswordModal(show) { const modal = document.getElementById('passwordModal'); if (show) { document.getElementById('passwordChangeForm').reset(); document.getElementById('passwordChangeError').style.display = 'none'; document.getElementById('passwordChangeSuccess').style.display = 'none'; } modal.style.display = show ? 'flex' : 'none'; }
+</script>
+</body>
+</html>
