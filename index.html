@@ -16,14 +16,18 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .form-group { margin-bottom:25px; text-align:right; }
 .form-group label { display:block; margin-bottom:8px; font-weight:600; }
 .form-input { width:100%; padding:15px; border:2px solid #ddd; border-radius:10px; font-size:16px; text-align:right; }
-.login-btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b894,#00a085); color:white; border:none; border-radius:10px; font-size:18px; cursor:pointer; transition: background-color 0.3s ease; }
-.login-btn:disabled { background: #b2bec3; cursor: not-allowed; }
-.error-message { background:#ff7675; color:white; padding:10px; border-radius:8px; margin-bottom:20px; display:none; }
+.login-btn, .action-btn { width:100%; padding:15px; background:linear-gradient(135deg,#00b894,#00a085); color:white; border:none; border-radius:10px; font-size:18px; cursor:pointer; transition: background-color 0.3s ease; }
+.login-btn:disabled, .action-btn:disabled { background: #b2bec3; cursor: not-allowed; }
+.error-message, .success-message { padding:10px; border-radius:8px; margin-bottom:20px; display:none; }
+.error-message { background:#ff7675; color:white; }
+.success-message { background:#55efc4; color:#2d3436; }
 .main-app { display:none; }
 .container { max-width:1400px; margin:0 auto; }
 .header { text-align:center; margin-bottom:30px; position:relative; }
-.user-info { position:absolute; top:0; left:20px; background:white; padding:10px 20px; border-radius:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); font-size:14px; display:flex; align-items:center; }
-.logout-btn { background:#ff7675; color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; margin-right:10px; }
+.user-info { position:absolute; top:0; left:20px; background:white; padding:10px 20px; border-radius:20px; box-shadow:0 3px 10px rgba(0,0,0,0.1); font-size:14px; display:flex; align-items:center; gap: 10px; }
+.logout-btn, .change-pass-btn { color:white; border:none; padding:8px 15px; border-radius:15px; cursor:pointer; font-size:12px; }
+.logout-btn { background:#ff7675; }
+.change-pass-btn { background:#74b9ff; }
 .main-title { font-size:56px; color:#2d3436; margin-bottom:15px; }
 .subtitle { font-size:24px; color:#636e72; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:25px; max-width:1400px; margin:30px auto; }
@@ -35,8 +39,6 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 .achievement-text { flex:1; width:100%; border:none; background:transparent; font-family:'Amiri', serif; font-size:14px; line-height:26px; resize:none; outline:none; text-align:right; }
 .achievement-text:disabled { cursor:not-allowed; opacity:0.7; }
 .save-status { margin-top:10px; font-size:13px; color:#636e72; height:15px; text-align:left; transition: color 0.3s ease; }
-
-/* Styles for About Modal */
 .about-link { font-size: 14px; color: #636e72; margin-top: 20px; cursor: pointer; text-decoration: underline; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; display: none; align-items: center; justify-content: center; }
 .modal-content { background: white; padding: 40px; border-radius: 20px; max-width: 500px; width: 90%; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -75,6 +77,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
   <div class="container">
     <div class="header">
       <div class="user-info">
+        <button class="change-pass-btn" onclick="togglePasswordModal(true)">تغيير كلمة السر</button>
         <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
         <span id="userInfo"></span>
       </div>
@@ -100,6 +103,31 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
   </div>
 </div>
 
+<div id="passwordModal" class="modal-overlay" onclick="togglePasswordModal(false)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <button class="close-btn" onclick="togglePasswordModal(false)">&times;</button>
+    <h2>تغيير كلمة المرور</h2>
+    <div id="passwordChangeError" class="error-message"></div>
+    <div id="passwordChangeSuccess" class="success-message"></div>
+    <form id="passwordChangeForm" onsubmit="handleChangePassword(event)">
+      <div class="form-group">
+        <label for="oldPassword">كلمة المرور الحالية:</label>
+        <input type="password" id="oldPassword" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="newPassword">كلمة المرور الجديدة:</label>
+        <input type="password" id="newPassword" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="confirmNewPassword">تأكيد كلمة المرور الجديدة:</label>
+        <input type="password" id="confirmNewPassword" class="form-input" required>
+      </div>
+      <button type="submit" class="action-btn">حفظ التغييرات</button>
+    </form>
+  </div>
+</div>
+
+
 <script>
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; 
 let currentUser = null;
@@ -107,7 +135,6 @@ let boardData = [];
 const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 let saveTimer;
 
-// عند تحميل الصفحة، اطلب بيانات الإنجازات
 document.addEventListener('DOMContentLoaded', () => {
     const script = document.createElement('script');
     script.src = `${GOOGLE_SHEET_URL}?callback=loadDataFromSheet`;
@@ -135,17 +162,12 @@ function login(event) {
     const errorDiv = document.getElementById('errorMessage');
     const loginBtn = event.target.querySelector('button');
     
-    // تعطيل الزر وإظهار رسالة انتظار
     loginBtn.disabled = true;
     loginBtn.textContent = 'جاري التحقق...';
     errorDiv.style.display = 'none';
     
-    // إنشاء اسم دالة callback فريد
     const callbackName = 'loginCallback' + Date.now();
-
-    // تعريف دالة الـ callback على المستوى العام
     window[callbackName] = (response) => {
-        // تفعيل الزر مرة أخرى
         loginBtn.disabled = false;
         loginBtn.textContent = 'تسجيل الدخول';
         
@@ -159,20 +181,16 @@ function login(event) {
             errorDiv.textContent = response.message || 'خطأ غير معروف';
             errorDiv.style.display = 'block';
         }
-
-        // تنظيف: إزالة السكريبت ودالة الـ callback
         document.head.removeChild(script);
         delete window[callbackName];
     };
 
-    // إرسال طلب JSONP إلى الواجهة الخلفية
     const script = document.createElement('script');
     script.src = `${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
     script.onerror = () => {
-        // في حالة فشل الاتصال بالشبكة
         loginBtn.disabled = false;
         loginBtn.textContent = 'تسجيل الدخول';
-        errorDiv.textContent = 'فشل الاتصال بالخادم. الرجاء التحقق من اتصالك بالإنترنت.';
+        errorDiv.textContent = 'فشل الاتصال بالخادم.';
         errorDiv.style.display = 'block';
         delete window[callbackName];
     };
@@ -194,45 +212,32 @@ function renderBoard() {
     boardData.forEach(cardData => {
         const card = document.createElement('div');
         card.className = 'sticky-note';
-        
         const isAdmin = currentUser.type === 'admin';
-        // الآن نتحقق من اسم العرض (displayName) بدلاً من الاسم القديم
         const isOwner = currentUser.type === 'student' && currentUser.displayName === cardData.name;
         const canEdit = isAdmin || isOwner;
         const colorClass = colors[cardData.id % colors.length];
         const firstLetter = cardData.name ? cardData.name.charAt(0) : '?';
 
-        card.innerHTML = `
-            <div class="name-label">${cardData.name}</div>
-            <div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div>
-            <div class="writing-area">
-              <textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement}</textarea>
-              ${canEdit ? '<div class="save-status"></div>' : ''}
-            </div>
-        `;
-
+        card.innerHTML = `<div class="name-label">${cardData.name}</div><div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div><div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement}</textarea>${canEdit ? '<div class="save-status"></div>' : ''}</div>`;
         if (canEdit) {
             const textarea = card.querySelector('.achievement-text');
             const saveStatus = card.querySelector('.save-status');
-
             textarea.addEventListener('input', () => {
                 saveStatus.textContent = '...';
                 saveStatus.style.color = '#636e72';
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(() => {
                     saveStatus.textContent = "⏳ جاري الحفظ...";
-                    saveAchievementToSheet(cardData.id, textarea.value)
-                        .then(() => {
-                            saveStatus.textContent = "✅ تم الحفظ";
-                            saveStatus.style.color = '#00b894';
-                            const localCard = boardData.find(item => item.id === cardData.id);
-                            if (localCard) localCard.achievement = textarea.value;
-                        })
-                        .catch(error => {
-                            console.error('خطأ في الحفظ:', error);
-                            saveStatus.textContent = "❌ خطأ في الحفظ";
-                            saveStatus.style.color = '#ff7675';
-                        });
+                    saveAchievementToSheet(cardData.id, textarea.value).then(() => {
+                        saveStatus.textContent = "✅ تم الحفظ";
+                        saveStatus.style.color = '#00b894';
+                        const localCard = boardData.find(item => item.id === cardData.id);
+                        if (localCard) localCard.achievement = textarea.value;
+                    }).catch(error => {
+                        console.error('خطأ في الحفظ:', error);
+                        saveStatus.textContent = "❌ خطأ في الحفظ";
+                        saveStatus.style.color = '#ff7675';
+                    });
                 }, 1500);
             });
         }
@@ -250,19 +255,87 @@ function saveAchievementToSheet(id, achievementText) {
             else reject(new Error(result.message || 'Unknown error'));
         };
         const script = document.createElement('script');
-        // البيانات الآن تُرسل ككائن JSON داخل الباراميتر 'data'
         const data = { action: 'update', id: id, field: 'achievement', value: achievementText };
         script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`;
-        script.onerror = () => {
-            delete window[callbackName];
-            reject(new Error('فشل في الاتصال بالخادم'));
-        };
+        script.onerror = () => { delete window[callbackName]; reject(new Error('فشل في الاتصال بالخادم')); };
         document.head.appendChild(script);
     });
 }
 
+function handleChangePassword(event) {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const oldPassword = document.getElementById('oldPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+    const errorDiv = document.getElementById('passwordChangeError');
+    const successDiv = document.getElementById('passwordChangeSuccess');
+    const submitBtn = document.getElementById('passwordChangeForm').querySelector('button');
+
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    if (newPassword !== confirmNewPassword) {
+        errorDiv.textContent = 'كلمتا المرور الجديدتان غير متطابقتين.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (newPassword.length < 4) {
+        errorDiv.textContent = 'يجب أن تكون كلمة المرور الجديدة 4 أحرف على الأقل.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'جاري الحفظ...';
+
+    const callbackName = 'passwordChangeCallback' + Date.now();
+    window[callbackName] = (response) => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'حفظ التغييرات';
+
+        if (response.result === 'success') {
+            successDiv.textContent = response.message;
+            successDiv.style.display = 'block';
+            document.getElementById('passwordChangeForm').reset();
+            setTimeout(() => togglePasswordModal(false), 2000); // إغلاق النافذة بعد ثانيتين
+        } else {
+            errorDiv.textContent = response.message;
+            errorDiv.style.display = 'block';
+        }
+
+        document.head.removeChild(script);
+        delete window[callbackName];
+    };
+
+    const script = document.createElement('script');
+    const params = `action=changePassword&username=${encodeURIComponent(currentUser.username)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}&callback=${callbackName}`;
+    script.src = `${GOOGLE_SHEET_URL}?${params}`;
+    script.onerror = () => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'حفظ التغييرات';
+        errorDiv.textContent = 'فشل الاتصال بالخادم.';
+        errorDiv.style.display = 'block';
+        delete window[callbackName];
+    };
+    document.head.appendChild(script);
+}
+
 function toggleAboutModal(show) {
     const modal = document.getElementById('aboutModal');
+    modal.style.display = show ? 'flex' : 'none';
+}
+
+function togglePasswordModal(show) {
+    const modal = document.getElementById('passwordModal');
+    if (show) {
+        // إعادة تعيين النموذج عند فتحه
+        document.getElementById('passwordChangeForm').reset();
+        document.getElementById('passwordChangeError').style.display = 'none';
+        document.getElementById('passwordChangeSuccess').style.display = 'none';
+    }
     modal.style.display = show ? 'flex' : 'none';
 }
 </script>
