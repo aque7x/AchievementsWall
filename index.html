@@ -32,7 +32,6 @@
             background-color: var(--bg-color);
             color: var(--main-font-color);
             line-height: 1.6;
-            overscroll-behavior-y: contain;
         }
 
         /* --- شاشة التحميل --- */
@@ -164,11 +163,16 @@
             font-size: 18px;
         }
         
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .header-actions button {
             background: none;
             border: 1px solid var(--border-color);
             padding: 8px 15px;
-            margin-right: 10px;
             border-radius: 8px;
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
@@ -181,13 +185,19 @@
             color: white;
             border-color: #d43f3a;
         }
-
+        .header-actions button.admin-btn {
+            background-color: #5cb85c;
+            color: white;
+            border-color: #4cae4c;
+        }
         .header-actions button:hover {
             background-color: #f0f0f0;
         }
-
         .header-actions button.logout-btn:hover {
             background-color: #c9302c;
+        }
+        .header-actions button.admin-btn:hover {
+            background-color: #449d44;
         }
 
         main {
@@ -298,8 +308,9 @@
             font-size: 14px;
             color: #555;
             flex-grow: 1;
+            cursor: pointer;
         }
-        .task-checkbox-item label:has(+ input:checked) {
+        .task-checkbox-item input[type="checkbox"]:checked + label {
             text-decoration: line-through;
             color: #999;
         }
@@ -312,25 +323,79 @@
         }
         
         /* --- لوحة تحكم الأدمن --- */
-        .sidebar {
+        #adminSidebar {
             position: fixed;
-            left: 0;
             top: 0;
-            width: 300px;
+            right: 0; /* يبدأ من اليمين */
+            width: 350px;
             height: 100%;
             background-color: white;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             padding: 20px;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 200;
+            transform: translateX(100%); /* إخفاء اللوحة جهة اليمين */
+            transition: transform 0.3s ease-in-out;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
         }
-        .sidebar.open {
+        #adminSidebar.open {
             transform: translateX(0);
         }
-        /* ( ... باقي تنسيقات الأدمن هنا إذا أردت ... ) */
-
-
+        #sidebarOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+        }
+        #sidebarOverlay.open {
+            display: block;
+        }
+        #adminSidebar h2 {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        #addTaskForm { margin-bottom: 20px; }
+        #addTaskForm input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        #addTaskForm button { width: 100%; padding: 10px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        
+        #adminTasksList {
+            list-style: none;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        #adminTasksList li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #adminTasksList li .task-text {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        #adminTasksList li .task-text .edit-input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+        }
+        #adminTasksList li .task-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-right: 8px; /* المسافة بين الأزرار */
+            font-size: 16px;
+        }
+        #adminTasksList li .task-actions .edit-btn { color: #f0ad4e; }
+        #adminTasksList li .task-actions .delete-btn { color: #d9534f; }
+        #adminTasksList li .task-actions .save-btn { color: #5cb85c; display: none;}
+        
         /* --- النوافذ المنبثقة (Modals) --- */
         .modal {
             display: none;
@@ -405,23 +470,28 @@
         </main>
     </div>
 
+    <div id="sidebarOverlay" onclick="toggleAdminSidebar(false)"></div>
+    <div id="adminSidebar">
+        <span class="close-btn" style="right: 15px; left: auto;" onclick="toggleAdminSidebar(false)">&times;</span>
+        <h2>إدارة المهام الأسبوعية</h2>
+        <form id="addTaskForm" onsubmit="adminAddTask(event)">
+            <input type="text" id="newTaskInput" placeholder="اكتب محتوى المهمة الجديدة..." required>
+            <button type="submit">➕ إضافة مهمة</button>
+        </form>
+        <hr style="margin: 20px 0;">
+        <h3>المهام الحالية</h3>
+        <ul id="adminTasksList">
+            </ul>
+    </div>
+    
     <div id="passwordModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="togglePasswordModal(false)">&times;</span>
             <h2>تغيير كلمة المرور</h2>
             <form id="passwordChangeForm" onsubmit="handleChangePassword(event)">
-                <div class="input-group">
-                    <label for="oldPassword">كلمة المرور القديمة</label>
-                    <input type="password" id="oldPassword" required>
-                </div>
-                <div class="input-group">
-                    <label for="newPassword">كلمة المرور الجديدة</label>
-                    <input type="password" id="newPassword" required>
-                </div>
-                <div class="input-group">
-                    <label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label>
-                    <input type="password" id="confirmNewPassword" required>
-                </div>
+                <div class="input-group"><label for="oldPassword">كلمة المرور القديمة</label><input type="password" id="oldPassword" required></div>
+                <div class="input-group"><label for="newPassword">كلمة المرور الجديدة</label><input type="password" id="newPassword" required></div>
+                <div class="input-group"><label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label><input type="password" id="confirmNewPassword" required></div>
                 <button type="submit">حفظ التغييرات</button>
                 <div id="passwordChangeError" style="color:red; margin-top:10px; display:none;"></div>
                 <div id="passwordChangeSuccess" style="color:green; margin-top:10px; display:none;"></div>
@@ -434,14 +504,14 @@
             <span class="close-btn" onclick="toggleAboutModal(false)">&times;</span>
             <h2>حول التطبيق</h2>
             <p>تطبيق حائط الإنجازات لمتابعة إنجازات ومهام الطلاب.</p>
-            <p>النسخة: 1.1</p>
+            <p>النسخة: 1.2</p>
         </div>
     </div>
 
 
 <script>
     // --- المتغيرات العامة ---
-    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/execL'; // <--- !! ضع رابط النشر الخاص بك هنا
     let currentUser = null;
     let boardData = [];
     let updateInterval;
@@ -456,14 +526,17 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+            
+            if (currentUser.type === 'admin') {
+                showAdminButton();
+            }
             initialLoad();
         } else {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'flex';
         }
 
-        // مستمع أحداث للتعامل مع النقر على checkboxes
-        document.getElementById('achievementGrid').addEventListener('change', function(e) {
+        document.getElementById('achievementGrid').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
                 const taskId = e.target.dataset.taskId;
                 const username = e.target.dataset.username;
@@ -471,8 +544,114 @@
                 saveTaskStatus(username, taskId, isCompleted);
             }
         });
+        
+        document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
+    // --- دوال واجهة الأدمن ---
+    function showAdminButton() {
+        const adminBtn = document.createElement('button');
+        adminBtn.className = 'admin-btn';
+        adminBtn.textContent = 'إدارة المهام';
+        adminBtn.onclick = () => toggleAdminSidebar(true);
+        const headerActions = document.querySelector('.header-actions');
+        headerActions.insertBefore(adminBtn, headerActions.firstChild);
+    }
+    
+    function toggleAdminSidebar(show) {
+        document.getElementById('adminSidebar').classList.toggle('open', show);
+        document.getElementById('sidebarOverlay').classList.toggle('open', show);
+        if (show) {
+            fetchAdminTasks();
+        }
+    }
+
+    function fetchAdminTasks() {
+        const list = document.getElementById('adminTasksList');
+        list.innerHTML = '<li>جاري تحميل المهام...</li>';
+        fetchData(`${GOOGLE_SHEET_URL}?action=getTasks`)
+            .then(response => {
+                list.innerHTML = '';
+                if (response.result === 'success' && response.data.length > 0) {
+                    response.data.forEach(task => {
+                        const li = document.createElement('li');
+                        li.dataset.taskId = task.taskId;
+                        li.innerHTML = `
+                            <span class="task-text">${task.taskContent}</span>
+                            <div class="task-actions">
+                                <button class="edit-btn" title="تعديل">✏️</button>
+                                <button class="save-btn" title="حفظ">💾</button>
+                                <button class="delete-btn" title="حذف">🗑️</button>
+                            </div>
+                        `;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>لا توجد مهام حالياً.</li>';
+                }
+            });
+    }
+
+    function adminAddTask(event) {
+        event.preventDefault();
+        const input = document.getElementById('newTaskInput');
+        const taskContent = input.value.trim();
+        if (!taskContent) return;
+        
+        const addButton = event.target.querySelector('button');
+        addButton.disabled = true;
+        addButton.textContent = 'جاري الإضافة...';
+
+        fetchData(`${GOOGLE_SHEET_URL}?action=handleTask&taskAction=add&taskContent=${encodeURIComponent(taskContent)}`)
+            .then(response => {
+                if (response.result === 'success') {
+                    input.value = '';
+                    fetchAdminTasks();
+                } else {
+                    alert('خطأ في إضافة المهمة.');
+                }
+            }).finally(() => {
+                addButton.disabled = false;
+                addButton.textContent = '➕ إضافة مهمة';
+            });
+    }
+
+    function handleAdminTaskAction(event) {
+        const target = event.target.closest('button');
+        if (!target) return;
+
+        const li = target.closest('li');
+        const taskId = li.dataset.taskId;
+        const taskTextSpan = li.querySelector('.task-text');
+
+        if (target.classList.contains('delete-btn')) {
+            if (confirm('هل أنت متأكد من حذف هذه المهمة؟ سيتم حذفها من جميع الطلاب.')) {
+                fetchData(`${GOOGLE_SHEET_URL}?action=handleTask&taskAction=delete&taskId=${taskId}`)
+                    .then(() => li.remove());
+            }
+        } else if (target.classList.contains('edit-btn')) {
+            const currentText = taskTextSpan.textContent;
+            taskTextSpan.innerHTML = `<input type="text" value="${currentText}" class="edit-input">`;
+            li.querySelector('.edit-btn').style.display = 'none';
+            li.querySelector('.save-btn').style.display = 'inline-block';
+            li.querySelector('.edit-input').focus();
+        } else if (target.classList.contains('save-btn')) {
+            const newContent = li.querySelector('.edit-input').value.trim();
+            if(newContent){
+                fetchData(`${GOOGLE_SHEET_URL}?action=handleTask&taskAction=update&taskId=${taskId}&taskContent=${encodeURIComponent(newContent)}`)
+                    .then(response => {
+                        if (response.result === 'success') {
+                            taskTextSpan.textContent = newContent;
+                            li.querySelector('.edit-btn').style.display = 'inline-block';
+                            li.querySelector('.save-btn').style.display = 'none';
+                        } else {
+                            alert('فشل التحديث');
+                        }
+                    });
+            }
+        }
+    }
+    
     // --- دوال جلب البيانات والتحديث ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
@@ -487,7 +666,7 @@
             .finally(() => {
                 document.getElementById('loading').style.display = 'none';
                 if (updateInterval) clearInterval(updateInterval);
-                updateInterval = setInterval(updateData, 10000); // تحديث كل 10 ثواني
+                updateInterval = setInterval(updateData, 10000);
             });
     }
 
@@ -588,17 +767,14 @@
         if (cardData.tasks && cardData.tasks.length > 0) {
             cardData.tasks.forEach(task => {
                 const checkboxId = `task-${task.taskId}-${cardData.username}`;
-                const labelFor = `for="${checkboxId}"`;
-                const checkedAttr = task.isCompleted ? 'checked' : '';
-                const disabledAttr = !isOwner ? 'disabled' : '';
-
                 tasksHTML += `
                     <div class="task-checkbox-item">
                         <input type="checkbox" id="${checkboxId}" 
                                data-task-id="${task.taskId}" 
                                data-username="${cardData.username}"
-                               ${checkedAttr} ${disabledAttr}>
-                        <label ${labelFor}>${task.taskContent}</label>
+                               ${task.isCompleted ? 'checked' : ''}
+                               ${!isOwner ? 'disabled' : ''}>
+                        <label for="${checkboxId}">${task.taskContent}</label>
                     </div>`;
             });
         } else {
@@ -627,6 +803,9 @@
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'block';
                     document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+                    if(currentUser.type === 'admin') {
+                        showAdminButton();
+                    }
                     initialLoad();
                 } else {
                     errorDiv.textContent = response.message;
@@ -652,6 +831,9 @@
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
         document.getElementById('errorMessage').style.display = 'none';
+        const adminBtn = document.querySelector('.admin-btn');
+        if (adminBtn) adminBtn.remove();
+        toggleAdminSidebar(false);
     }
     
     function saveTaskStatus(username, taskId, isCompleted) {
@@ -705,7 +887,7 @@
             });
     }
 
-    // دالة مساعدة لجلب البيانات (JSONP)
+    // --- دالة مساعدة لجلب البيانات (JSONP) ---
     function fetchData(url) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -721,7 +903,7 @@
         });
     }
     
-    // دوال النوافذ المنبثقة
+    // --- دوال النوافذ المنبثقة ---
     function togglePasswordModal(show) {
         const modal = document.getElementById('passwordModal');
         if(show) {
