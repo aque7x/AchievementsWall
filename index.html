@@ -124,67 +124,94 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 <div id="passwordModal" class="modal-overlay" onclick="togglePasswordModal(false)"><div class="modal-content" onclick="event.stopPropagation()"><button class="close-btn" onclick="togglePasswordModal(false)">&times;</button><h2>تغيير كلمة المرور</h2><div id="passwordChangeError" class="error-message"></div><div id="passwordChangeSuccess" class="success-message"></div><form id="passwordChangeForm" onsubmit="handleChangePassword(event)"><div class="form-group"><label for="oldPassword">كلمة المرور الحالية:</label><input type="password" id="oldPassword" class="form-input" required></div><div class="form-group"><label for="newPassword">كلمة المرور الجديدة:</label><input type="password" id="newPassword" class="form-input" required></div><div class="form-group"><label for="confirmNewPassword">تأكيد كلمة المرور الجديدة:</label><input type="password" id="confirmNewPassword" class="form-input" required></div><button type="submit" class="action-btn">حفظ التغييرات</button></form></div></div>
 
 <script>
+// --- START: NEW AND REFACTORED CODE ---
+
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';   
 let currentUser = null;
 let boardData = [];
 let weeklyTasks = [];
-const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 let saveTimer;
+let updateInterval; // To hold the setInterval ID
 
+const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
+
+// 1. CHECK FOR SAVED SESSION ON PAGE LOAD
+// This function runs first to see if the user is already logged in.
 document.addEventListener('DOMContentLoaded', () => {
-    fetchInitialData(); // لجلب البيانات أول مرة عند تحميل الصفحة
-    setInterval(fetchInitialData, 10000); // لتحديث البيانات كل 10 ثواني
-});
-
-function fetchInitialData() {
-    document.getElementById('loading').style.display = 'flex';
-    const scriptAchievements = document.createElement('script');
-    scriptAchievements.src = `${GOOGLE_SHEET_URL}?callback=loadDataFromSheet`;
-    document.body.appendChild(scriptAchievements);
-    
-    const scriptTasks = document.createElement('script');
-    scriptTasks.src = `${GOOGLE_SHEET_URL}?action=getTasks&callback=loadTasksFromSheet`;
-    document.body.appendChild(scriptTasks);
-}
-
-// ==========================================================
-// ===========  START: 1st CHANGE (FINAL FIX) ===============
-// ==========================================================
-function loadDataFromSheet(result) {
-    if (result.result === 'success') {
-        // Here we add 'username: item.username' to ensure the username from the sheet is stored
-        boardData = result.data.filter(item => item.id && item.id !== '').map(item => ({
-            id: parseInt(item.id, 10),
-            name: item.name || `مستخدم ${item.id}`,
-            achievement: item.achievement || '',
-            username: item.username || '' // This line is new and crucial
-        }));
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+        
+        // Load data for the first time and then start the auto-update
+        initialLoad();
     } else {
-        document.getElementById('loading').innerHTML = `<span>خطأ بتحميل بيانات الإنجازات: ${result.message}</span>`;
-    }
-    checkLoadingComplete();
-}
-// ==========================================================
-// ============  END: 1st CHANGE (FINAL FIX) ================
-// ==========================================================
-
-function loadTasksFromSheet(result) {
-    if (result.result === 'success') {
-        weeklyTasks = result.data;
-    } else {
-        document.getElementById('loading').innerHTML = `<span>خطأ بتحميل بيانات المهام: ${result.message}</span>`;
-    }
-    checkLoadingComplete();
-}
-
-let loadedResources = 0;
-function checkLoadingComplete() {
-    loadedResources++;
-    if (loadedResources >= 2) {
+        // If no saved user, just show the login screen
         document.getElementById('loading').style.display = 'none';
         document.getElementById('loginScreen').style.display = 'flex';
     }
+});
+
+// This function is for the very first data load
+function initialLoad() {
+    document.getElementById('loading').style.display = 'flex';
+    Promise.all([
+        fetchData(GOOGLE_SHEET_URL),
+        fetchData(`${GOOGLE_SHEET_URL}?action=getTasks`)
+    ]).then(([achievementsResult, tasksResult]) => {
+        if (achievementsResult.result === 'success') {
+            boardData = achievementsResult.data.filter(item => item.id && item.id !== '').map(item => ({
+                id: parseInt(item.id, 10),
+                name: item.name || `مستخدم ${item.id}`,
+                achievement: item.achievement || '',
+                username: item.username || ''
+            }));
+            renderBoardFirstTime(); // Full render
+        }
+        if (tasksResult.result === 'success') {
+            weeklyTasks = tasksResult.data;
+            renderTasksFirstTime(); // Full render
+        }
+    }).catch(error => {
+        console.error("Error during initial load:", error);
+        document.getElementById('loading').innerHTML = `<span>حدث خطأ في تحميل البيانات الأولية.</span>`;
+    }).finally(() => {
+        document.getElementById('loading').style.display = 'none';
+        // 2. SET UPDATE INTERVAL TO 10 SECONDS
+        // Start the periodic update ONLY after the initial load is complete.
+        if (updateInterval) clearInterval(updateInterval); // Clear any old interval
+        updateInterval = setInterval(updateData, 10000); // 10000ms = 10 seconds
+    });
 }
+
+// This function will be called every 10 seconds to get new data
+function updateData() {
+    console.log("Checking for updates...");
+    Promise.all([
+        fetchData(GOOGLE_SHEET_URL),
+        fetchData(`${GOOGLE_SHEET_URL}?action=getTasks`)
+    ]).then(([achievementsResult, tasksResult]) => {
+        if (achievementsResult.result === 'success') {
+            const newBoardData = achievementsResult.data.filter(item => item.id && item.id !== '').map(item => ({
+                id: parseInt(item.id, 10),
+                name: item.name || `مستخدم ${item.id}`,
+                achievement: item.achievement || '',
+                username: item.username || ''
+            }));
+            // 3. SMART UPDATE WITHOUT FLICKERING (Achievements)
+            updateBoardUI(newBoardData);
+        }
+        if (tasksResult.result === 'success') {
+             // 3. SMART UPDATE WITHOUT FLICKERING (Tasks)
+            updateTasksUI(tasksResult.data);
+        }
+    }).catch(error => {
+        console.error("Error during periodic update:", error);
+    });
+}
+
 
 function login(event) {
     event.preventDefault();
@@ -193,27 +220,192 @@ function login(event) {
     const errorDiv = document.getElementById('errorMessage');
     const loginBtn = event.target.querySelector('button');
     loginBtn.disabled = true; loginBtn.textContent = 'جاري التحقق...'; errorDiv.style.display = 'none';
-    const callbackName = 'loginCallback' + Date.now();
-    window[callbackName] = (response) => {
-        loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول';
-        if (response.result === 'success') {
-            currentUser = response.user;
-            loginScreen.style.display = 'none'; mainApp.style.display = 'block';
-            document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
-            renderBoard();
-            renderTasks();
-        } else {
-            errorDiv.textContent = response.message || 'خطأ غير معروف'; errorDiv.style.display = 'block';
-        }
-        document.head.removeChild(script); delete window[callbackName];
-    };
-    const script = document.createElement('script');
-    script.src = `${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
-    script.onerror = () => { loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; };
-    document.head.appendChild(script);
+
+    fetchData(`${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`)
+        .then(response => {
+            if (response.result === 'success') {
+                currentUser = response.user;
+                // 4. SAVE USER TO LOCALSTORAGE ON LOGIN
+                // This keeps the user logged in even after a page refresh.
+                localStorage.setItem('currentUser', JSON.stringify(currentUser)); 
+                
+                loginScreen.style.display = 'none'; 
+                mainApp.style.display = 'block';
+                document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+                initialLoad(); // Load data for the first time
+            } else {
+                errorDiv.textContent = response.message || 'خطأ غير معروف'; 
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            errorDiv.textContent = 'فشل الاتصال بالخادم.'; 
+            errorDiv.style.display = 'block';
+        })
+        .finally(() => {
+            loginBtn.disabled = false; 
+            loginBtn.textContent = 'تسجيل الدخول';
+        });
 }
 
-function renderTasks() {
+function logout() {
+    // 5. REMOVE USER FROM LOCALSTORAGE ON LOGOUT
+    localStorage.removeItem('currentUser');
+    
+    currentUser = null; 
+    clearInterval(updateInterval); // Stop auto-updates
+    mainApp.style.display = 'none'; 
+    loginScreen.style.display = 'flex'; 
+    document.getElementById('username').value = ''; 
+    document.getElementById('password').value = ''; 
+    document.getElementById('errorMessage').style.display = 'none'; 
+}
+
+
+// --- SMART UI UPDATE FUNCTIONS (TO PREVENT FLICKERING) ---
+
+function updateBoardUI(newBoardData) {
+    const grid = document.getElementById('achievementGrid');
+    const newIds = new Set(newBoardData.map(d => d.id));
+    
+    // Update existing notes and add new ones
+    newBoardData.forEach(cardData => {
+        const existingCard = grid.querySelector(`.sticky-note[data-id='${cardData.id}']`);
+        if (existingCard) {
+            // Card exists, just update the text if it's different and not being edited
+            const textarea = existingCard.querySelector('.achievement-text');
+            if (textarea && textarea.value !== cardData.achievement && document.activeElement !== textarea) {
+                textarea.value = cardData.achievement;
+            }
+        } else {
+            // Card is new, create and append it
+            const card = createStickyNoteElement(cardData);
+            grid.appendChild(card);
+        }
+    });
+
+    // Remove old notes that are no longer in the data
+    const currentCards = grid.querySelectorAll('.sticky-note');
+    currentCards.forEach(card => {
+        const cardId = parseInt(card.dataset.id, 10);
+        if (!newIds.has(cardId)) {
+            card.remove();
+        }
+    });
+    
+    boardData = newBoardData; // Update the global data variable
+}
+
+function updateTasksUI(newTasks) {
+    const tasksList = document.getElementById('tasksList');
+    const newTaskIds = new Set(newTasks.map(t => t.taskId));
+    
+    // Update existing tasks and add new ones
+    newTasks.forEach(task => {
+        const existingTask = tasksList.querySelector(`li[data-task-id='${task.taskId}']`);
+        if (existingTask) {
+            // Task exists, update content if different
+            const contentSpan = existingTask.querySelector('.task-content');
+            if (contentSpan && contentSpan.textContent !== task.taskContent) {
+                contentSpan.textContent = task.taskContent;
+            }
+        } else {
+            // Task is new, create and append it
+             const li = createTaskElement(task);
+             tasksList.appendChild(li);
+        }
+    });
+
+    // Remove old tasks
+    const currentTasks = tasksList.querySelectorAll('li[data-task-id]');
+    if (currentTasks.length === 0 && newTasks.length > 0) {
+        tasksList.innerHTML = ''; // Clear "no tasks" message
+        newTasks.forEach(task => tasksList.appendChild(createTaskElement(task)));
+    } else {
+        currentTasks.forEach(li => {
+            if (!newTaskIds.has(li.dataset.taskId)) {
+                li.remove();
+            }
+        });
+    }
+
+    if (tasksList.children.length === 0) {
+        tasksList.innerHTML = '<li class="task-item">لا توجد مهام حالياً.</li>';
+    } else if (tasksList.querySelector('.task-item').textContent === 'لا توجد مهام حالياً.' && newTasks.length > 0) {
+        tasksList.innerHTML = '';
+        newTasks.forEach(task => tasksList.appendChild(createTaskElement(task)));
+    }
+    
+    weeklyTasks = newTasks; // Update global data
+}
+
+
+// --- ELEMENT CREATION AND INITIAL RENDER FUNCTIONS ---
+
+// This function creates a single sticky note element. Used by both initial render and smart update.
+function createStickyNoteElement(cardData) {
+    const card = document.createElement('div');
+    card.className = 'sticky-note';
+    card.dataset.id = cardData.id; // Add data-id for easy selection
+    
+    const isAdmin = currentUser.type === 'admin';
+    const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
+    const canEdit = isAdmin || isOwner;
+    const colorClass = colors[cardData.id % colors.length];
+    const firstLetter = cardData.name ? cardData.name.charAt(0) : '?';
+    
+    card.innerHTML = `<div class="name-label">${cardData.name}</div><div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div><div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement}</textarea>${canEdit ? '<div class="save-status"></div>' : ''}</div>`;
+    
+    if (canEdit) {
+        const textarea = card.querySelector('.achievement-text');
+        const saveStatus = card.querySelector('.save-status');
+        textarea.addEventListener('input', () => {
+            saveStatus.textContent = '...';
+            saveStatus.style.color = '#636e72';
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                saveStatus.textContent = "⏳ جاري الحفظ...";
+                saveAchievementToSheet(cardData.id, textarea.value).then(() => {
+                    saveStatus.textContent = "✅ تم الحفظ";
+                    saveStatus.style.color = '#00b894';
+                    const localCard = boardData.find(item => item.id === cardData.id);
+                    if (localCard) localCard.achievement = textarea.value;
+                }).catch(error => {
+                    console.error('خطأ في الحفظ:', error);
+                    saveStatus.textContent = "❌ خطأ في الحفظ";
+                    saveStatus.style.color = '#ff7675';
+                });
+            }, 1500);
+        });
+    }
+    return card;
+}
+
+function createTaskElement(task) {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    li.dataset.taskId = task.taskId;
+
+    let adminButtons = '';
+    if (currentUser && currentUser.type === 'admin') {
+        adminButtons = `<div class="task-actions"><button class="delete-btn" onclick="handleDeleteTask('${task.taskId}', this)">🗑️ حذف</button></div>`;
+    }
+    li.innerHTML = `<span class="task-content">${task.taskContent}</span>${adminButtons}`;
+    return li;
+}
+
+
+// These functions run only ONCE for the initial page setup.
+function renderBoardFirstTime() {
+    const grid = document.getElementById('achievementGrid');
+    grid.innerHTML = '';
+    boardData.forEach(cardData => {
+        const card = createStickyNoteElement(cardData);
+        grid.appendChild(card);
+    });
+}
+
+function renderTasksFirstTime() {
     const tasksList = document.getElementById('tasksList');
     const adminControls = document.getElementById('adminTaskControls');
     tasksList.innerHTML = '';
@@ -222,16 +414,7 @@ function renderTasks() {
         tasksList.innerHTML = '<li class="task-item">لا توجد مهام حالياً.</li>';
     } else {
         weeklyTasks.forEach(task => {
-            const li = document.createElement('li');
-            li.className = 'task-item';
-            li.dataset.taskId = task.taskId;
-            
-            let adminButtons = '';
-            if (currentUser && currentUser.type === 'admin') {
-                adminButtons = `<div class="task-actions"><button class="delete-btn" onclick="handleDeleteTask('${task.taskId}', this)">🗑️ حذف</button></div>`;
-            }
-
-            li.innerHTML = `<span class="task-content">${task.taskContent}</span>${adminButtons}`;
+            const li = createTaskElement(task);
             tasksList.appendChild(li);
         });
     }
@@ -243,100 +426,73 @@ function renderTasks() {
     }
 }
 
+
+// --- UTILITY AND HELPER FUNCTIONS (MOSTLY UNCHANGED) ---
+
+// A new helper function to handle JSONP requests with Promises, making the code cleaner
+function fetchData(url) {
+    return new Promise((resolve, reject) => {
+        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+        window[callbackName] = (data) => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            resolve(data);
+        };
+        const script = document.createElement('script');
+        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+        script.onerror = reject;
+        document.body.appendChild(script);
+    });
+}
+
 function handleAddTask(event) {
     event.preventDefault();
     const input = document.getElementById('newTaskContent');
     const taskContent = input.value.trim();
     if (!taskContent) return;
-    const callbackName = 'taskCallback' + Date.now();
-    window[callbackName] = (response) => {
-        if (response.result === 'success') {
-            weeklyTasks.push({ taskId: response.newTaskId, taskContent: taskContent, isCompleted: false });
-            renderTasks();
-            input.value = '';
-        } else {
-            alert('خطأ في إضافة المهمة: ' + response.message);
-        }
-        document.head.removeChild(script); delete window[callbackName];
-    };
-    const script = document.createElement('script');
-    script.src = `${GOOGLE_SHEET_URL}?action=handleTask&taskAction=add&taskContent=${encodeURIComponent(taskContent)}&callback=${callbackName}`;
-    document.head.appendChild(script);
+    
+    fetchData(`${GOOGLE_SHEET_URL}?action=handleTask&taskAction=add&taskContent=${encodeURIComponent(taskContent)}`)
+        .then(response => {
+            if (response.result === 'success') {
+                const newTask = { taskId: response.newTaskId, taskContent: taskContent };
+                weeklyTasks.push(newTask);
+                
+                if (document.querySelector('#tasksList .task-item').textContent === 'لا توجد مهام حالياً.') {
+                    document.getElementById('tasksList').innerHTML = '';
+                }
+                document.getElementById('tasksList').appendChild(createTaskElement(newTask));
+                input.value = '';
+            } else {
+                alert('خطأ في إضافة المهمة: ' + response.message);
+            }
+        });
 }
 
 function handleDeleteTask(taskId, buttonElement) {
     if (!confirm('هل أنت متأكد من حذف هذه المهمة؟')) return;
     buttonElement.textContent = '...';
-    const callbackName = 'taskCallback' + Date.now();
-    window[callbackName] = (response) => {
-        if (response.result === 'success') {
-            weeklyTasks = weeklyTasks.filter(t => t.taskId !== taskId);
-            renderTasks();
-        } else {
-            alert('خطأ في حذف المهمة: ' + response.message);
-            buttonElement.textContent = '🗑️ حذف';
-        }
-        document.head.removeChild(script); delete window[callbackName];
-    };
-    const script = document.createElement('script');
-    script.src = `${GOOGLE_SHEET_URL}?action=handleTask&taskAction=delete&taskId=${taskId}&callback=${callbackName}`;
-    document.head.appendChild(script);
+    
+    fetchData(`${GOOGLE_SHEET_URL}?action=handleTask&taskAction=delete&taskId=${taskId}`)
+        .then(response => {
+            if (response.result === 'success') {
+                weeklyTasks = weeklyTasks.filter(t => t.taskId !== taskId);
+                const taskElement = document.querySelector(`li[data-task-id='${taskId}']`);
+                if(taskElement) taskElement.remove();
+                if (document.getElementById('tasksList').children.length === 0) {
+                    document.getElementById('tasksList').innerHTML = '<li class="task-item">لا توجد مهام حالياً.</li>';
+                }
+            } else {
+                alert('خطأ في حذف المهمة: ' + response.message);
+                buttonElement.textContent = '🗑️ حذف';
+            }
+        });
 }
-
-function logout() { currentUser = null; mainApp.style.display = 'none'; loginScreen.style.display = 'flex'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('errorMessage').style.display = 'none'; }
-
-// ==========================================================
-// =========== START: 2nd CHANGE (FINAL FIX) ================
-// ==========================================================
-function renderBoard() {
-    const grid = document.getElementById('achievementGrid');
-    grid.innerHTML = '';
-    boardData.forEach(cardData => {
-        const card = document.createElement('div');
-        card.className = 'sticky-note';
-        const isAdmin = currentUser.type === 'admin';
-        
-        // This is the 100% reliable check. It compares the logged-in user's unique username
-        // with the username associated with the sticky note.
-        const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
-        
-        const canEdit = isAdmin || isOwner;
-        const colorClass = colors[cardData.id % colors.length];
-        const firstLetter = cardData.name ? cardData.name.charAt(0) : '?';
-        card.innerHTML = `<div class="name-label">${cardData.name}</div><div class="profile-circle ${colorClass}"><span>${firstLetter}</span></div><div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement}</textarea>${canEdit ? '<div class="save-status"></div>' : ''}</div>`;
-        if (canEdit) {
-            const textarea = card.querySelector('.achievement-text');
-            const saveStatus = card.querySelector('.save-status');
-            textarea.addEventListener('input', () => {
-                saveStatus.textContent = '...';
-                saveStatus.style.color = '#636e72';
-                clearTimeout(saveTimer);
-                saveTimer = setTimeout(() => {
-                    saveStatus.textContent = "⏳ جاري الحفظ...";
-                    saveAchievementToSheet(cardData.id, textarea.value).then(() => {
-                        saveStatus.textContent = "✅ تم الحفظ";
-                        saveStatus.style.color = '#00b894';
-                        const localCard = boardData.find(item => item.id === cardData.id);
-                        if (localCard) localCard.achievement = textarea.value;
-                    }).catch(error => {
-                        console.error('خطأ في الحفظ:', error);
-                        saveStatus.textContent = "❌ خطأ في الحفظ";
-                        saveStatus.style.color = '#ff7675';
-                    });
-                }, 1500);
-            });
-        }
-        grid.appendChild(card);
-    });
-}
-// ==========================================================
-// ============  END: 2nd CHANGE (FINAL FIX) ================
-// ==========================================================
 
 function saveAchievementToSheet(id, achievementText) { return new Promise((resolve, reject) => { const callbackName = 'saveCallback' + Date.now() + Math.random().toString().substr(2); window[callbackName] = (result) => { delete window[callbackName]; if (document.head.contains(script)) document.head.removeChild(script); if (result.result === 'success') resolve(true); else reject(new Error(result.message || 'Unknown error')); }; const script = document.createElement('script'); const data = { action: 'update', id: id, field: 'achievement', value: achievementText }; script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`; script.onerror = () => { delete window[callbackName]; reject(new Error('فشل في الاتصال بالخادم')); }; document.head.appendChild(script); }); }
 function handleChangePassword(event) { event.preventDefault(); if (!currentUser) return; const oldPassword = document.getElementById('oldPassword').value; const newPassword = document.getElementById('newPassword').value; const confirmNewPassword = document.getElementById('confirmNewPassword').value; const errorDiv = document.getElementById('passwordChangeError'); const successDiv = document.getElementById('passwordChangeSuccess'); const submitBtn = document.getElementById('passwordChangeForm').querySelector('button'); errorDiv.style.display = 'none'; successDiv.style.display = 'none'; if (newPassword !== confirmNewPassword) { errorDiv.textContent = 'كلمتا المرور الجديدتان غير متطابقتين.'; errorDiv.style.display = 'block'; return; } if (newPassword.length < 4) { errorDiv.textContent = 'يجب أن تكون كلمة المرور الجديدة 4 أحرف على الأقل.'; errorDiv.style.display = 'block'; return; } submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...'; const callbackName = 'passwordChangeCallback' + Date.now(); window[callbackName] = (response) => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; if (response.result === 'success') { successDiv.textContent = response.message; successDiv.style.display = 'block'; document.getElementById('passwordChangeForm').reset(); setTimeout(() => togglePasswordModal(false), 2000); } else { errorDiv.textContent = response.message; errorDiv.style.display = 'block'; } document.head.removeChild(script); delete window[callbackName]; }; const script = document.createElement('script'); const params = `action=changePassword&username=${encodeURIComponent(currentUser.username)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}&callback=${callbackName}`; script.src = `${GOOGLE_SHEET_URL}?${params}`; script.onerror = () => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; }; document.head.appendChild(script); }
 function toggleAboutModal(show) { const modal = document.getElementById('aboutModal'); modal.style.display = show ? 'flex' : 'none'; }
 function togglePasswordModal(show) { const modal = document.getElementById('passwordModal'); if (show) { document.getElementById('passwordChangeForm').reset(); document.getElementById('passwordChangeError').style.display = 'none'; document.getElementById('passwordChangeSuccess').style.display = 'none'; } modal.style.display = show ? 'flex' : 'none'; }
+
 </script>
 </body>
 </html>
