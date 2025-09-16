@@ -427,7 +427,31 @@
             font-weight: bold;
             cursor: pointer;
         }
-
+        /* --- تنسيقات نافذة عن المطور --- */
+        .developer-info p {
+            margin-bottom: 10px;
+        }
+        .developer-info h4 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .developer-info ul {
+            list-style: none;
+            padding: 0;
+        }
+        .developer-info li {
+            margin-bottom: 8px;
+        }
+        .developer-info a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .developer-info a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -460,7 +484,7 @@
             <div id="userInfo"></div>
             <div class="header-actions">
                 <button onclick="togglePasswordModal(true)">تغيير كلمة المرور</button>
-                <button onclick="toggleAboutModal(true)">حول التطبيق</button>
+                <button onclick="toggleAboutModal(true)">عن المطور</button>
                 <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
             </div>
         </header>
@@ -502,14 +526,19 @@
     <div id="aboutModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="toggleAboutModal(false)">&times;</span>
-            <h2>حول التطبيق</h2>
-            <p>تطبيق حائط الإنجازات لمتابعة إنجازات ومهام الطلاب.</p>
-            <p>النسخة: 1.2</p>
+            <h2>عن المطور</h2>
+            <div class="developer-info">
+                <p>تم تطوير هذا التطبيق بواسطة <strong>بلال زامل</strong>.</p>
+                <p>طالب في المرحلة الثانية بقسم علوم الحاسوب في <strong>جامعة الأنبار</strong>، شغوف ببناء وتطوير تطبيقات الويب والبرامج التي تهدف إلى حل المشاكل وتقديم أدوات مفيدة للمجتمع.</p>
+                <h4>للتواصل والمتابعة:</h4>
+                <ul>
+                    <li>📸 <strong>انستغرام</strong>: <a href="https://instagram.com/bilalvodes1" target="_blank">bilalvodes1</a></li>
+                    <li>✈️ <strong>تليغرام</strong>: <a href="https://t.me/bilalvodes1" target="_blank">bilalvodes1</a></li>
+                </ul>
+            </div>
         </div>
     </div>
-
-
-<script>
+    <script>
     // --- المتغيرات العامة ---
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
     let currentUser = null;
