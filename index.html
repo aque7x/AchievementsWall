@@ -130,15 +130,13 @@ let boardData = [];
 let weeklyTasks = [];
 const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 let saveTimer;
-let refreshInterval = null; // -- جديد: متغير لحفظ مؤقت التحديث
+let refreshInterval = null;
 
-// -- جديد: التحقق من وجود جلسة مسجلة عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
     checkSession();
     fetchInitialData();
 });
 
-// -- جديد: دالة للتحقق من وجود مستخدم في localStorage
 function checkSession() {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
@@ -185,17 +183,14 @@ function checkLoadingComplete() {
     loadedResources++;
     if (loadedResources >= 2) {
         document.getElementById('loading').style.display = 'none';
-        // -- جديد: التحقق إذا كان المستخدم مسجل دخوله بالفعل
         if (currentUser) {
-            // إذا كان مسجل، اعرض التطبيق مباشرة
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
             loginScreen.style.display = 'none';
             mainApp.style.display = 'block';
             renderBoard();
             renderTasks();
-            startAutoRefresh(); // ابدأ التحديث التلقائي
+            startAutoRefresh();
         } else {
-            // إذا لم يكن مسجلاً، اظهر شاشة تسجيل الدخول
             document.getElementById('loginScreen').style.display = 'flex';
         }
     }
@@ -213,15 +208,13 @@ function login(event) {
         loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول';
         if (response.result === 'success') {
             currentUser = response.user;
-            // -- جديد: حفظ بيانات المستخدم في localStorage
             localStorage.setItem('currentUser', JSON.stringify(currentUser)); 
-            
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
             loginScreen.style.display = 'none'; 
             mainApp.style.display = 'block';
             renderBoard();
             renderTasks();
-            startAutoRefresh(); // -- جديد: ابدأ التحديث التلقائي بعد تسجيل الدخول
+            startAutoRefresh();
         } else {
             errorDiv.textContent = response.message || 'خطأ غير معروف'; errorDiv.style.display = 'block';
         }
@@ -233,12 +226,9 @@ function login(event) {
     document.head.appendChild(script);
 }
 
-// ==========================================================
-// ===========  START: دوال التحديث التلقائي (جديد) =========
-// ==========================================================
 function startAutoRefresh() {
-    if (refreshInterval) clearInterval(refreshInterval); // إيقاف أي تحديث سابق
-    refreshInterval = setInterval(refreshData, 30000); // تحديث كل 30 ثانية
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(refreshData, 30000);
     console.log("Auto-refresh started.");
 }
 
@@ -249,54 +239,56 @@ function stopAutoRefresh() {
 }
 
 function refreshData() {
-    console.log("Refreshing data...");
-
-    // لا تقم بالتحديث إذا كان المستخدم يكتب حالياً
     const activeElement = document.activeElement;
     if (activeElement && activeElement.tagName === 'TEXTAREA' && activeElement.classList.contains('achievement-text')) {
         console.log("User is typing. Skipping this refresh cycle.");
         return;
     }
-
-    // جلب بيانات الإنجازات المحدثة
     const scriptAchievements = document.createElement('script');
     scriptAchievements.src = `${GOOGLE_SHEET_URL}?callback=refreshBoardData`;
     document.body.appendChild(scriptAchievements);
     
-    // جلب بيانات المهام المحدثة
     const scriptTasks = document.createElement('script');
     scriptTasks.src = `${GOOGLE_SHEET_URL}?action=getTasks&callback=refreshTasksData`;
     document.body.appendChild(scriptTasks);
 }
 
-// دالة منفصلة للتعامل مع بيانات الإنجازات المحدثة
 function refreshBoardData(result) {
     if (result.result === 'success') {
-        boardData = result.data.filter(item => item.id && item.id !== '').map(item => ({
+        const newData = result.data.filter(item => item.id && item.id !== '').map(item => ({
             id: parseInt(item.id, 10),
             name: item.name || `مستخدم ${item.id}`,
             achievement: item.achievement || '',
             username: item.username || ''
         }));
-        renderBoard(); // إعادة رسم اللوحة
+        boardData = newData;
+        /**
+         * ==========================================================
+         * ===========  START: التعديل الجوهري لحل المشكلة =========
+         * ==========================================================
+         *
+         * بدلاً من استدعاء renderBoard() التي تدمر كل شيء
+         * نستدعي دالة جديدة updateBoard() التي تحدث العناصر فقط
+         */
+        updateBoard(newData);
+        /**
+         * ==========================================================
+         * ============  END: التعديل الجوهري لحل المشكلة ===========
+         * ==========================================================
+         */
     } else {
         console.error("Failed to refresh achievements data:", result.message);
     }
 }
 
-// دالة منفصلة للتعامل مع بيانات المهام المحدثة
 function refreshTasksData(result) {
      if (result.result === 'success') {
         weeklyTasks = result.data;
-        renderTasks(); // إعادة رسم قائمة المهام
+        renderTasks();
     } else {
         console.error("Failed to refresh tasks data:", result.message);
     }
 }
-// ==========================================================
-// ===========  END: دوال التحديث التلقائي (جديد) ===========
-// ==========================================================
-
 
 function renderTasks() {
     const tasksList = document.getElementById('tasksList');
@@ -370,10 +362,8 @@ function handleDeleteTask(taskId, buttonElement) {
 
 function logout() { 
     currentUser = null; 
-    // -- جديد: حذف بيانات المستخدم من localStorage وإيقاف التحديث
     localStorage.removeItem('currentUser');
     stopAutoRefresh();
-    
     mainApp.style.display = 'none'; 
     loginScreen.style.display = 'flex'; 
     document.getElementById('username').value = ''; 
@@ -381,12 +371,57 @@ function logout() {
     document.getElementById('errorMessage').style.display = 'none'; 
 }
 
+/**
+ * ==========================================================
+ * ===========  START: دالة التحديث الذكي (جديد) ===========
+ * ==========================================================
+ *
+ * هذه الدالة لا تدمر الواجهة، بل تحدثها بذكاء
+ */
+function updateBoard(newData) {
+    newData.forEach(item => {
+        // البحث عن العنصر الموجود حالياً في الصفحة
+        const noteElement = document.getElementById(`note-${item.id}`);
+        if (noteElement) {
+            const textarea = noteElement.querySelector('.achievement-text');
+            
+            // يتم تحديث المحتوى فقط إذا كان المستخدم لا يكتب في هذا المربع تحديداً
+            if (document.activeElement !== textarea) {
+                if (textarea.value !== item.achievement) {
+                    textarea.value = item.achievement;
+                }
+            }
+        }
+    });
+}
+/**
+ * ==========================================================
+ * ============  END: دالة التحديث الذكي (جديد) =============
+ * ==========================================================
+ */
+
+
 function renderBoard() {
     const grid = document.getElementById('achievementGrid');
     grid.innerHTML = '';
     boardData.forEach(cardData => {
         const card = document.createElement('div');
         card.className = 'sticky-note';
+        
+        /**
+         * ==========================================================
+         * =========== START: إضافة ID فريد لكل ملاحظة =============
+         * ==========================================================
+         *
+         * هذا السطر مهم جداً لكي نتمكن من العثور على الملاحظة وتحديثها لاحقاً
+         */
+        card.id = `note-${cardData.id}`;
+        /**
+         * ==========================================================
+         * ============ END: إضافة ID فريد لكل ملاحظة ==============
+         * ==========================================================
+         */
+
         const isAdmin = currentUser.type === 'admin';
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
         const canEdit = isAdmin || isOwner;
