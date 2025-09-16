@@ -79,7 +79,7 @@ body { font-family:'Amiri', serif; background:linear-gradient(135deg,#f8f9fa 0%,
 <body>
 <div id="loading" class="loading-overlay"><span>جاري تحميل البيانات...</span></div>
 
-<div id="loginScreen" class="login-container">
+<div id="loginScreen" class="login-container" style="display: none;">
   <div class="login-box">
     <h2 class="login-title">حائط الإنجازات</h2>
     <p class="login-subtitle">مرحباً بك! الرجاء تسجيل الدخول للمتابعة</p>
@@ -130,8 +130,21 @@ let boardData = [];
 let weeklyTasks = [];
 const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 let saveTimer;
+let refreshInterval = null; // -- جديد: متغير لحفظ مؤقت التحديث
 
-document.addEventListener('DOMContentLoaded', fetchInitialData);
+// -- جديد: التحقق من وجود جلسة مسجلة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    checkSession();
+    fetchInitialData();
+});
+
+// -- جديد: دالة للتحقق من وجود مستخدم في localStorage
+function checkSession() {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        currentUser = JSON.parse(storedUser);
+    }
+}
 
 function fetchInitialData() {
     document.getElementById('loading').style.display = 'flex';
@@ -144,26 +157,19 @@ function fetchInitialData() {
     document.body.appendChild(scriptTasks);
 }
 
-// ==========================================================
-// ===========  START: 1st CHANGE (FINAL FIX) ===============
-// ==========================================================
 function loadDataFromSheet(result) {
     if (result.result === 'success') {
-        // Here we add 'username: item.username' to ensure the username from the sheet is stored
         boardData = result.data.filter(item => item.id && item.id !== '').map(item => ({
             id: parseInt(item.id, 10),
             name: item.name || `مستخدم ${item.id}`,
             achievement: item.achievement || '',
-            username: item.username || '' // This line is new and crucial
+            username: item.username || ''
         }));
     } else {
         document.getElementById('loading').innerHTML = `<span>خطأ بتحميل بيانات الإنجازات: ${result.message}</span>`;
     }
     checkLoadingComplete();
 }
-// ==========================================================
-// ============  END: 1st CHANGE (FINAL FIX) ================
-// ==========================================================
 
 function loadTasksFromSheet(result) {
     if (result.result === 'success') {
@@ -179,7 +185,19 @@ function checkLoadingComplete() {
     loadedResources++;
     if (loadedResources >= 2) {
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
+        // -- جديد: التحقق إذا كان المستخدم مسجل دخوله بالفعل
+        if (currentUser) {
+            // إذا كان مسجل، اعرض التطبيق مباشرة
+            document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+            loginScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+            renderBoard();
+            renderTasks();
+            startAutoRefresh(); // ابدأ التحديث التلقائي
+        } else {
+            // إذا لم يكن مسجلاً، اظهر شاشة تسجيل الدخول
+            document.getElementById('loginScreen').style.display = 'flex';
+        }
     }
 }
 
@@ -195,10 +213,15 @@ function login(event) {
         loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول';
         if (response.result === 'success') {
             currentUser = response.user;
-            loginScreen.style.display = 'none'; mainApp.style.display = 'block';
+            // -- جديد: حفظ بيانات المستخدم في localStorage
+            localStorage.setItem('currentUser', JSON.stringify(currentUser)); 
+            
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+            loginScreen.style.display = 'none'; 
+            mainApp.style.display = 'block';
             renderBoard();
             renderTasks();
+            startAutoRefresh(); // -- جديد: ابدأ التحديث التلقائي بعد تسجيل الدخول
         } else {
             errorDiv.textContent = response.message || 'خطأ غير معروف'; errorDiv.style.display = 'block';
         }
@@ -209,6 +232,71 @@ function login(event) {
     script.onerror = () => { loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; };
     document.head.appendChild(script);
 }
+
+// ==========================================================
+// ===========  START: دوال التحديث التلقائي (جديد) =========
+// ==========================================================
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval); // إيقاف أي تحديث سابق
+    refreshInterval = setInterval(refreshData, 30000); // تحديث كل 30 ثانية
+    console.log("Auto-refresh started.");
+}
+
+function stopAutoRefresh() {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+    console.log("Auto-refresh stopped.");
+}
+
+function refreshData() {
+    console.log("Refreshing data...");
+
+    // لا تقم بالتحديث إذا كان المستخدم يكتب حالياً
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.tagName === 'TEXTAREA' && activeElement.classList.contains('achievement-text')) {
+        console.log("User is typing. Skipping this refresh cycle.");
+        return;
+    }
+
+    // جلب بيانات الإنجازات المحدثة
+    const scriptAchievements = document.createElement('script');
+    scriptAchievements.src = `${GOOGLE_SHEET_URL}?callback=refreshBoardData`;
+    document.body.appendChild(scriptAchievements);
+    
+    // جلب بيانات المهام المحدثة
+    const scriptTasks = document.createElement('script');
+    scriptTasks.src = `${GOOGLE_SHEET_URL}?action=getTasks&callback=refreshTasksData`;
+    document.body.appendChild(scriptTasks);
+}
+
+// دالة منفصلة للتعامل مع بيانات الإنجازات المحدثة
+function refreshBoardData(result) {
+    if (result.result === 'success') {
+        boardData = result.data.filter(item => item.id && item.id !== '').map(item => ({
+            id: parseInt(item.id, 10),
+            name: item.name || `مستخدم ${item.id}`,
+            achievement: item.achievement || '',
+            username: item.username || ''
+        }));
+        renderBoard(); // إعادة رسم اللوحة
+    } else {
+        console.error("Failed to refresh achievements data:", result.message);
+    }
+}
+
+// دالة منفصلة للتعامل مع بيانات المهام المحدثة
+function refreshTasksData(result) {
+     if (result.result === 'success') {
+        weeklyTasks = result.data;
+        renderTasks(); // إعادة رسم قائمة المهام
+    } else {
+        console.error("Failed to refresh tasks data:", result.message);
+    }
+}
+// ==========================================================
+// ===========  END: دوال التحديث التلقائي (جديد) ===========
+// ==========================================================
+
 
 function renderTasks() {
     const tasksList = document.getElementById('tasksList');
@@ -280,11 +368,19 @@ function handleDeleteTask(taskId, buttonElement) {
     document.head.appendChild(script);
 }
 
-function logout() { currentUser = null; mainApp.style.display = 'none'; loginScreen.style.display = 'flex'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('errorMessage').style.display = 'none'; }
+function logout() { 
+    currentUser = null; 
+    // -- جديد: حذف بيانات المستخدم من localStorage وإيقاف التحديث
+    localStorage.removeItem('currentUser');
+    stopAutoRefresh();
+    
+    mainApp.style.display = 'none'; 
+    loginScreen.style.display = 'flex'; 
+    document.getElementById('username').value = ''; 
+    document.getElementById('password').value = ''; 
+    document.getElementById('errorMessage').style.display = 'none'; 
+}
 
-// ==========================================================
-// =========== START: 2nd CHANGE (FINAL FIX) ================
-// ==========================================================
 function renderBoard() {
     const grid = document.getElementById('achievementGrid');
     grid.innerHTML = '';
@@ -292,11 +388,7 @@ function renderBoard() {
         const card = document.createElement('div');
         card.className = 'sticky-note';
         const isAdmin = currentUser.type === 'admin';
-        
-        // This is the 100% reliable check. It compares the logged-in user's unique username
-        // with the username associated with the sticky note.
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
-        
         const canEdit = isAdmin || isOwner;
         const colorClass = colors[cardData.id % colors.length];
         const firstLetter = cardData.name ? cardData.name.charAt(0) : '?';
@@ -326,9 +418,6 @@ function renderBoard() {
         grid.appendChild(card);
     });
 }
-// ==========================================================
-// ============  END: 2nd CHANGE (FINAL FIX) ================
-// ==========================================================
 
 function saveAchievementToSheet(id, achievementText) { return new Promise((resolve, reject) => { const callbackName = 'saveCallback' + Date.now() + Math.random().toString().substr(2); window[callbackName] = (result) => { delete window[callbackName]; if (document.head.contains(script)) document.head.removeChild(script); if (result.result === 'success') resolve(true); else reject(new Error(result.message || 'Unknown error')); }; const script = document.createElement('script'); const data = { action: 'update', id: id, field: 'achievement', value: achievementText }; script.src = `${GOOGLE_SHEET_URL}?callback=${callbackName}&data=${encodeURIComponent(JSON.stringify(data))}`; script.onerror = () => { delete window[callbackName]; reject(new Error('فشل في الاتصال بالخادم')); }; document.head.appendChild(script); }); }
 function handleChangePassword(event) { event.preventDefault(); if (!currentUser) return; const oldPassword = document.getElementById('oldPassword').value; const newPassword = document.getElementById('newPassword').value; const confirmNewPassword = document.getElementById('confirmNewPassword').value; const errorDiv = document.getElementById('passwordChangeError'); const successDiv = document.getElementById('passwordChangeSuccess'); const submitBtn = document.getElementById('passwordChangeForm').querySelector('button'); errorDiv.style.display = 'none'; successDiv.style.display = 'none'; if (newPassword !== confirmNewPassword) { errorDiv.textContent = 'كلمتا المرور الجديدتان غير متطابقتين.'; errorDiv.style.display = 'block'; return; } if (newPassword.length < 4) { errorDiv.textContent = 'يجب أن تكون كلمة المرور الجديدة 4 أحرف على الأقل.'; errorDiv.style.display = 'block'; return; } submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...'; const callbackName = 'passwordChangeCallback' + Date.now(); window[callbackName] = (response) => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; if (response.result === 'success') { successDiv.textContent = response.message; successDiv.style.display = 'block'; document.getElementById('passwordChangeForm').reset(); setTimeout(() => togglePasswordModal(false), 2000); } else { errorDiv.textContent = response.message; errorDiv.style.display = 'block'; } document.head.removeChild(script); delete window[callbackName]; }; const script = document.createElement('script'); const params = `action=changePassword&username=${encodeURIComponent(currentUser.username)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}&callback=${callbackName}`; script.src = `${GOOGLE_SHEET_URL}?${params}`; script.onerror = () => { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; delete window[callbackName]; }; document.head.appendChild(script); }
