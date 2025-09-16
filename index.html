@@ -131,7 +131,10 @@ let weeklyTasks = [];
 const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 let saveTimer;
 
-document.addEventListener('DOMContentLoaded', fetchInitialData);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchInitialData(); // لجلب البيانات أول مرة عند تحميل الصفحة
+    setInterval(fetchInitialData, 10000); // لتحديث البيانات كل 10 ثواني
+});
 
 function fetchInitialData() {
     document.getElementById('loading').style.display = 'flex';
