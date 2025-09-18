@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>حائط الإنجازات</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@3.4.0/tsparticles.bundle.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f7f9;
@@ -119,7 +120,7 @@
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color: 0.3s;
         }
 
         .login-container button:hover {
@@ -452,6 +453,17 @@
         .developer-info a:hover {
             text-decoration: underline;
         }
+
+        /* --- تمت إضافة تنسيقات التأثير هنا --- */
+        #tsparticles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none; /* للسماح بالضغط على العناصر خلفها */
+        }
     </style>
 </head>
 <body>
@@ -538,6 +550,10 @@
             </div>
         </div>
     </div>
+    
+    <div id="tsparticles"></div>
+    <audio id="celebrationSound" src="./fireworks_launch.mp3" preload="auto"></audio>
+    
     <script>
     // --- المتغيرات العامة ---
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
@@ -547,7 +563,7 @@
     let saveTimer;
     const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
-    // --- تحميل الصفحة والتحقق من تسجيل الدخول ---
+    // --- تحميل الصفحة والتحقق من تسجيل الدخول (تم تعديله) ---
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -571,11 +587,71 @@
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
                 saveTaskStatus(username, taskId, isCompleted);
+
+                // --- كود التحقق من اكتمال المهام وتشغيل التأثير ---
+                const stickyNote = e.target.closest('.sticky-note');
+                if (stickyNote) {
+                    const allCheckboxes = stickyNote.querySelectorAll('.task-checkbox-item input[type="checkbox"]');
+                    const allTasksCompleted = Array.from(allCheckboxes).every(checkbox => checkbox.checked);
+
+                    if (allTasksCompleted && allCheckboxes.length > 0) {
+                        runSyncedFireworks(); // استدعاء دالة التأثير
+                    }
+                }
             }
         });
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
+
+    // --- تمت إضافة دالة الألعاب النارية هنا ---
+    async function runSyncedFireworks() {
+        document.getElementById('celebrationSound').play();
+        await tsParticles.load({
+            id: "tsparticles",
+            options: {
+                background: {
+                    color: "transparent",
+                },
+                particles: {
+                    number: { value: 0 },
+                    color: { value: ["#FFD700", "#FF6347", "#00FFFF", "#FFFFFF"] },
+                    shape: { type: "circle" },
+                    opacity: {
+                        value: { min: 0, max: 1 },
+                        animation: {
+                            enable: true,
+                            speed: 2,
+                            startValue: "max",
+                            destroy: "min",
+                        },
+                    },
+                    size: { value: { min: 3, max: 7 } },
+                    life: {
+                        duration: { sync: true, value: 5 },
+                        count: 1,
+                    },
+                    move: {
+                        enable: true,
+                        gravity: { enable: true, acceleration: 10 },
+                        speed: { min: 10, max: 20 },
+                        decay: 0.05,
+                        outModes: { default: "destroy", top: "none" },
+                    },
+                },
+                emitters: {
+                    direction: "top",
+                    life: { count: 0, duration: 0.1, delay: 0.1 },
+                    rate: { delay: 0.15, quantity: 1 },
+                    size: { width: 100, height: 0 },
+                    position: { y: 100, x: 50 },
+                },
+                detectRetina: true,
+                fullScreen: { enable: true, zIndex: 9999 },
+                preset: "fireworks",
+            }
+        });
+    }
 
     // --- دوال واجهة الأدمن ---
     function showAdminButton() {
