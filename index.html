@@ -539,7 +539,6 @@
         </div>
     </div>
 
-    <!-- مكتبة confetti للألعاب النارية -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <script>
@@ -827,10 +826,10 @@
                 tasksHTML += `
                     <div class="task-checkbox-item">
                         <input type="checkbox" id="${checkboxId}" 
-                               data-task-id="${task.taskId}" 
-                               data-username="${cardData.username}"
-                               ${task.isCompleted ? 'checked' : ''}
-                               ${!isOwner ? 'disabled' : ''}>
+                                data-task-id="${task.taskId}" 
+                                data-username="${cardData.username}"
+                                ${task.isCompleted ? 'checked' : ''}
+                                ${!isOwner ? 'disabled' : ''}>
                         <label for="${checkboxId}">${task.taskContent}</label>
                     </div>`;
             });
@@ -971,23 +970,25 @@
     }
 
     function triggerFirework() {
+        // تشغيل الصوت
+        const sound = document.getElementById('celebrationSound');
+        if (sound) {
+            sound.currentTime = 0;   // يرجع بداية الملف
+            sound.volume = 0.9;     // مستوى الصوت (0.0 - 1.0)
+            sound.play().catch(err => console.log("ما قدر يشغل الصوت:", err));
+        }
+
+        // confetti
         const duration = 3 * 1000;
         const end = Date.now() + duration;
 
         (function frame() {
             confetti({
-                particleCount: 5,
+                particleCount: 8,
                 spread: 70,
-                origin: { x: Math.random() }
+                origin: { x: Math.random(), y: Math.random() * 0.4 + 0.1 }
             });
-            confetti({
-                particleCount: 5,
-                spread: 70,
-                origin: { x: Math.random(), y: 0.6 }
-            });
-            if (Date.now() < end) {
-                requestAnimationFrame(frame);
-            }
+            if (Date.now() < end) requestAnimationFrame(frame);
         }());
     }
 
@@ -1027,5 +1028,7 @@
     }
 
     </script>
+    
+    <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
 </body>
 </html>
