@@ -454,7 +454,7 @@
             text-decoration: underline;
         }
         
-        /* --- تمت إضافة تنسيقات التأثير هنا --- */
+        /* 2. تمت إضافة تنسيقات التأثير هنا */
         #tsparticles {
             position: fixed;
             top: 0;
@@ -462,7 +462,7 @@
             width: 100%;
             height: 100%;
             z-index: 9999;
-            pointer-events: none; /* للسماح بالضغط على العناصر خلفها */
+            pointer-events: none;
         }
     </style>
 </head>
@@ -585,7 +585,7 @@
                 const taskId = e.target.dataset.taskId;
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
-                // تم حذف منطق التحقق القديم من هنا، وأصبحت هذه الدالة هي المسؤولة
+                // تم حذف منطق التحقق القديم من هنا
                 saveTaskStatus(username, taskId, isCompleted);
             }
         });
@@ -593,7 +593,7 @@
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
     
-    // --- دالة الألعاب النارية (بدون صوت) ---
+    // 4. تمت إضافة دالة الألعاب النارية ---
     async function runFireworksEffect() {
         await tsParticles.load({
             id: "tsparticles",
@@ -929,13 +929,12 @@
         toggleAdminSidebar(false);
     }
     
-    // --- دالة saveTaskStatus المحدثة ---
+    // 5. تم تحديث دالة saveTaskStatus
     function saveTaskStatus(username, taskId, isCompleted) {
         fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${username}&taskId=${taskId}&isCompleted=${isCompleted}`)
             .then(response => {
-                // التحقق من الإشارة القادمة من الواجهة الخلفية
                 if (response && response.result === 'success' && response.allTasksCompleted === true) {
-                    runFireworksEffect(); // تشغيل التأثير فقط إذا كانت كل المهام مكتملة
+                    runFireworksEffect();
                 }
             })
             .catch(error => console.error("Error updating task status:", error));
