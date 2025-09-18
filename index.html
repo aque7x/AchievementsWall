@@ -613,7 +613,7 @@
         </div>
     </div>
 <script>
-    // --- المتغيرات العامة ---
+    // --- Global Variables ---
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
     let currentUser = null;
     let boardData = [];
@@ -621,7 +621,7 @@
     let saveTimer;
     const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
-    // --- دوال الألعاب النارية ---
+    // --- Fireworks Functions ---
     function createFirework(x, y) {
         const firework = document.createElement('div');
         firework.className = 'firework';
@@ -678,7 +678,7 @@
         }, 4000);
     }
 
-    // --- تحميل الصفحة والتحقق من تسجيل الدخول ---
+    // --- Page Load and Login Check ---
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -707,7 +707,7 @@
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
-    // --- دوال واجهة الأدمن ---
+    // --- Admin UI Functions ---
     function showAdminButton() {
         const adminBtn = document.createElement('button');
         adminBtn.className = 'admin-btn';
@@ -807,7 +807,7 @@
         }
     }
 
-    // --- دوال جلب البيانات والتحديث ---
+    // --- Data Fetching and UI Rendering ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
         fetchData(GOOGLE_SHEET_URL)
@@ -833,7 +833,6 @@
             }).catch(error => console.error("Update failed:", error));
     }
 
-    // --- دوال الواجهة الرسومية (UI) ---
     function renderBoardFirstTime() {
         const grid = document.getElementById('achievementGrid');
         grid.innerHTML = '';
@@ -931,7 +930,7 @@
         return tasksHTML;
     }
 
-    // --- دوال الاتصال بالخادم ---
+    // --- Server Communication Functions ---
     function login(event) {
         event.preventDefault();
         const usernameInput = document.getElementById('username');
@@ -1041,7 +1040,7 @@
             });
     }
 
-    // --- دالة مساعدة لجلب البيانات (JSONP) ---
+    // --- JSONP Fetch Helper ---
     function fetchData(url) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -1057,7 +1056,7 @@
         });
     }
     
-    // --- دوال النوافذ المنبثقة ---
+    // --- Modal Functions ---
     function togglePasswordModal(show) {
         const modal = document.getElementById('passwordModal');
         if(show) {
