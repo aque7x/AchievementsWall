@@ -34,7 +34,6 @@
             line-height: 1.6;
         }
 
-        /* --- شاشة التحميل --- */
         #loading {
             position: fixed;
             top: 0;
@@ -64,7 +63,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* --- Fireworks Animation --- */
         #fireworksContainer {
             position: fixed;
             top: 0;
@@ -142,7 +140,6 @@
             100% { transform: translate(-50%, -50%) scale(1); }
         }
 
-        /* --- شاشة تسجيل الدخول --- */
         #loginScreen {
             display: none;
             flex-direction: column;
@@ -219,7 +216,6 @@
             display: none;
         }
 
-        /* --- التطبيق الرئيسي --- */
         #mainApp {
             display: none;
         }
@@ -288,7 +284,6 @@
             gap: 25px;
         }
         
-        /* --- الملاحظات اللاصقة (Sticky Notes) --- */
         .sticky-note {
             background: var(--card-bg);
             border-radius: 12px;
@@ -355,7 +350,6 @@
             color: #888;
         }
 
-        /* --- تنسيقات قائمة المهام داخل النوتة --- */
         .note-tasks-list {
             border-top: 1px solid #f0f0f0;
             margin-top: 15px;
@@ -372,7 +366,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 8px;
-            direction: rtl; /* لجعل الـ checkbox على اليمين */
+            direction: rtl;
         }
         .task-checkbox-item input[type="checkbox"] {
             margin-left: 10px;
@@ -400,17 +394,16 @@
             padding: 5px 0;
         }
         
-        /* --- لوحة تحكم الأدمن --- */
         #adminSidebar {
             position: fixed;
             top: 0;
-            right: 0; /* يبدأ من اليمين */
+            right: 0;
             width: 350px;
             height: 100%;
             background-color: white;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             padding: 20px;
-            transform: translateX(100%); /* إخفاء اللوحة جهة اليمين */
+            transform: translateX(100%);
             transition: transform 0.3s ease-in-out;
             z-index: 1001;
             display: flex;
@@ -467,14 +460,13 @@
             background: none;
             border: none;
             cursor: pointer;
-            margin-right: 8px; /* المسافة بين الأزرار */
+            margin-right: 8px;
             font-size: 16px;
         }
         #adminTasksList li .task-actions .edit-btn { color: #f0ad4e; }
         #adminTasksList li .task-actions .delete-btn { color: #d9534f; }
         #adminTasksList li .task-actions .save-btn { color: #5cb85c; display: none;}
         
-        /* --- النوافذ المنبثقة (Modals) --- */
         .modal {
             display: none;
             position: fixed;
@@ -505,7 +497,6 @@
             font-weight: bold;
             cursor: pointer;
         }
-        /* --- تنسيقات نافذة عن المطور --- */
         .developer-info p {
             margin-bottom: 10px;
         }
@@ -539,7 +530,6 @@
         <span>جاري تحميل البيانات...</span>
     </div>
 
-    <!-- Fireworks Container -->
     <div id="fireworksContainer"></div>
     <div id="celebrationMessage" class="celebration-message">
         🎉 مبروك! لقد أنجزت جميع المهام الأسبوعية! 🎉
@@ -567,7 +557,6 @@
         <header>
             <div id="userInfo"></div>
             <div class="header-actions">
-                <button onclick="triggerFireworks()">اختبار الألعاب النارية</button>
                 <button onclick="togglePasswordModal(true)">تغيير كلمة المرور</button>
                 <button onclick="toggleAboutModal(true)">عن المطور</button>
                 <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
@@ -575,7 +564,7 @@
         </header>
         <main>
             <div id="achievementGrid">
-                </div>
+            </div>
         </main>
     </div>
 
@@ -590,7 +579,7 @@
         <hr style="margin: 20px 0;">
         <h3>المهام الحالية</h3>
         <ul id="adminTasksList">
-            </ul>
+        </ul>
     </div>
     
     <div id="passwordModal" class="modal">
@@ -623,9 +612,9 @@
             </div>
         </div>
     </div>
-    <script>
+<script>
     // --- المتغيرات العامة ---
-    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
     let currentUser = null;
     let boardData = [];
     let updateInterval;
@@ -638,19 +627,13 @@
         firework.className = 'firework';
         firework.style.left = x + 'px';
         firework.style.top = y + 'px';
-        
         const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffd93d', '#ff9ff3', '#54a0ff'];
         const color = colors[Math.floor(Math.random() * colors.length)];
         firework.style.backgroundColor = color;
-        
         document.getElementById('fireworksContainer').appendChild(firework);
-
-        // Create particles
         for (let i = 0; i < 12; i++) {
             createFireworkParticle(x, y, color);
         }
-
-        // Remove firework after animation
         setTimeout(() => {
             if (firework.parentNode) {
                 firework.parentNode.removeChild(firework);
@@ -662,18 +645,13 @@
         const particle = document.createElement('div');
         particle.className = 'firework-particle';
         particle.style.backgroundColor = color;
-        
         const angle = Math.random() * 2 * Math.PI;
         const velocity = 50 + Math.random() * 50;
         const particleX = x + Math.cos(angle) * velocity;
         const particleY = y + Math.sin(angle) * velocity;
-        
         particle.style.left = particleX + 'px';
         particle.style.top = particleY + 'px';
-        
         document.getElementById('fireworksContainer').appendChild(particle);
-
-        // Remove particle after animation
         setTimeout(() => {
             if (particle.parentNode) {
                 particle.parentNode.removeChild(particle);
@@ -684,11 +662,8 @@
     function triggerFireworks() {
         const container = document.getElementById('fireworksContainer');
         const message = document.getElementById('celebrationMessage');
-        
         container.style.display = 'block';
         message.style.display = 'block';
-
-        // Create multiple fireworks at random positions
         for (let i = 0; i < 8; i++) {
             setTimeout(() => {
                 const x = Math.random() * window.innerWidth;
@@ -696,36 +671,11 @@
                 createFirework(x, y);
             }, i * 200);
         }
-
-        // Hide everything after 4 seconds
         setTimeout(() => {
             container.style.display = 'none';
             message.style.display = 'none';
-            // Clear any remaining particles
             container.innerHTML = '';
         }, 4000);
-    }
-
-    function checkTaskCompletion(username) {
-        console.log('Checking task completion for:', username);
-        const userData = boardData.find(user => user.username === username);
-        console.log('User data:', userData);
-        
-        if (!userData || !userData.tasks || userData.tasks.length === 0) {
-            console.log('No user data or tasks found');
-            return;
-        }
-
-        const allTasksCompleted = userData.tasks.every(task => task.isCompleted);
-        console.log('All tasks completed:', allTasksCompleted, 'Total tasks:', userData.tasks.length);
-        
-        if (allTasksCompleted && userData.tasks.length > 0) {
-            console.log('Triggering fireworks!');
-            // Trigger fireworks celebration
-            setTimeout(() => {
-                triggerFireworks();
-            }, 500); // Small delay for better UX
-        }
     }
 
     // --- تحميل الصفحة والتحقق من تسجيل الدخول ---
@@ -736,7 +686,6 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
-            
             if (currentUser.type === 'admin') {
                 showAdminButton();
             }
@@ -745,29 +694,16 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'flex';
         }
-
+        
         document.getElementById('achievementGrid').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
                 const taskId = e.target.dataset.taskId;
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
                 saveTaskStatus(username, taskId, isCompleted);
-                
-                // Check if all tasks are completed for fireworks - Updated Logic
-                if (isCompleted && currentUser.username === username) {
-                    // Update the boardData immediately for current user
-                    const userData = boardData.find(user => user.username === username);
-                    if (userData && userData.tasks) {
-                        const task = userData.tasks.find(t => t.taskId === taskId);
-                        if (task) {
-                            task.isCompleted = isCompleted;
-                        }
-                    }
-                    setTimeout(() => checkTaskCompletion(username), 200);
-                }
             }
         });
-        
+
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
@@ -780,7 +716,6 @@
         const headerActions = document.querySelector('.header-actions');
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
     }
-    
     function toggleAdminSidebar(show) {
         document.getElementById('adminSidebar').classList.toggle('open', show);
         document.getElementById('sidebarOverlay').classList.toggle('open', show);
@@ -788,7 +723,6 @@
             fetchAdminTasks();
         }
     }
-
     function fetchAdminTasks() {
         const list = document.getElementById('adminTasksList');
         list.innerHTML = '<li>جاري تحميل المهام...</li>';
@@ -814,7 +748,6 @@
                 }
             });
     }
-
     function adminAddTask(event) {
         event.preventDefault();
         const input = document.getElementById('newTaskInput');
@@ -838,7 +771,6 @@
                 addButton.textContent = '➕ إضافة مهمة';
             });
     }
-
     function handleAdminTaskAction(event) {
         const target = event.target.closest('button');
         if (!target) return;
@@ -874,7 +806,7 @@
             }
         }
     }
-    
+
     // --- دوال جلب البيانات والتحديث ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
@@ -892,7 +824,6 @@
                 updateInterval = setInterval(updateData, 10000);
             });
     }
-
     function updateData() {
         fetchData(GOOGLE_SHEET_URL)
             .then(result => {
@@ -913,7 +844,6 @@
             }
         });
     }
-
     function updateBoardUI(newBoardData) {
         const grid = document.getElementById('achievementGrid');
         const newIds = new Set(newBoardData.map(d => d.id));
@@ -944,13 +874,10 @@
         });
         boardData = newBoardData;
     }
-
-    // --- دوال إنشاء العناصر ---
     function createStickyNoteElement(cardData) {
         const card = document.createElement('div');
         card.className = 'sticky-note';
         card.dataset.id = cardData.id;
-
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
         const canEditAchievement = currentUser.type === 'admin' || isOwner;
         const colorClass = colors[cardData.id % colors.length];
@@ -982,11 +909,9 @@
         }
         return card;
     }
-
     function createTasksHTML(cardData) {
         let tasksHTML = '<h4>المهام الأسبوعية</h4>';
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
-
         if (cardData.tasks && cardData.tasks.length > 0) {
             cardData.tasks.forEach(task => {
                 const checkboxId = `task-${task.taskId}-${cardData.username}`;
@@ -1061,6 +986,12 @@
     
     function saveTaskStatus(username, taskId, isCompleted) {
         fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${username}&taskId=${taskId}&isCompleted=${isCompleted}`)
+            .then(response => {
+                if (response && response.result === 'success' && response.allTasksCompleted === true) {
+                    console.log("Server confirmed all tasks are completed. Triggering fireworks!");
+                    triggerFireworks();
+                }
+            })
             .catch(error => console.error("Error updating task status:", error));
     }
 
@@ -1140,7 +1071,6 @@
     function toggleAboutModal(show) {
         document.getElementById('aboutModal').style.display = show ? 'flex' : 'none';
     }
-
 </script>
 </body>
 </html>
