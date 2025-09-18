@@ -453,7 +453,7 @@
         .developer-info a:hover {
             text-decoration: underline;
         }
-
+        
         /* --- تمت إضافة تنسيقات التأثير هنا --- */
         #tsparticles {
             position: fixed;
@@ -587,7 +587,7 @@
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
                 saveTaskStatus(username, taskId, isCompleted);
-
+                
                 // --- كود التحقق من اكتمال المهام وتشغيل التأثير ---
                 const stickyNote = e.target.closest('.sticky-note');
                 if (stickyNote) {
@@ -603,7 +603,7 @@
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
-
+    
     // --- تمت إضافة دالة الألعاب النارية هنا ---
     async function runSyncedFireworks() {
         document.getElementById('celebrationSound').play();
