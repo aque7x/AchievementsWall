@@ -538,9 +538,13 @@
             </div>
         </div>
     </div>
+
+    <!-- مكتبة confetti للألعاب النارية -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <script>
     // --- المتغيرات العامة ---
-    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // ضع رابطك إن اختلف
     let currentUser = null;
     let boardData = [];
     let updateInterval;
@@ -570,6 +574,9 @@
                 const taskId = e.target.dataset.taskId;
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
+                // 1) حدث البيانات محلياً فوراً ليتحقق checkIfAllTasksCompleted بدقة
+                updateLocalTaskStatus(username, taskId, isCompleted);
+                // 2) أرسل للتخزين في الشيت
                 saveTaskStatus(username, taskId, isCompleted);
             }
         });
@@ -618,6 +625,9 @@
                 } else {
                     list.innerHTML = '<li>لا توجد مهام حالياً.</li>';
                 }
+            }).catch(err => {
+                list.innerHTML = '<li>حدث خطأ أثناء جلب المهام.</li>';
+                console.error(err);
             });
     }
 
@@ -673,6 +683,7 @@
                             taskTextSpan.textContent = newContent;
                             li.querySelector('.edit-btn').style.display = 'inline-block';
                             li.querySelector('.save-btn').style.display = 'none';
+                            // بعد تعديل محتوى المهمة، سنجدد واجهة الطلاب عند التحديث الدوري
                         } else {
                             alert('فشل التحديث');
                         }
@@ -687,7 +698,7 @@
         fetchData(GOOGLE_SHEET_URL)
             .then(result => {
                 if (result.result === 'success') {
-                    boardData = result.data;
+                    boardData = normalizeBoardData(result.data);
                     renderBoardFirstTime();
                 } else { throw new Error(result.message); }
             })
@@ -703,9 +714,26 @@
         fetchData(GOOGLE_SHEET_URL)
             .then(result => {
                 if (result.result === 'success') {
-                    updateBoardUI(result.data);
+                    const normalized = normalizeBoardData(result.data);
+                    updateBoardUI(normalized);
                 }
             }).catch(error => console.error("Update failed:", error));
+    }
+
+    function normalizeBoardData(dataArray) {
+        // نتأكد أن قيم isCompleted كلها boolean بدلاً من نص
+        return dataArray.map(u => {
+            if (u.tasks && Array.isArray(u.tasks)) {
+                u.tasks = u.tasks.map(t => ({
+                    taskId: t.taskId,
+                    taskContent: t.taskContent,
+                    isCompleted: (t.isCompleted === true || t.isCompleted === "true" || t.isCompleted === "TRUE")
+                }));
+            } else {
+                u.tasks = [];
+            }
+            return u;
+        });
     }
 
     // --- دوال الواجهة الرسومية (UI) ---
@@ -865,8 +893,23 @@
         toggleAdminSidebar(false);
     }
     
+    // --- دالة مساعدة لتحديث الحالة محلياً قبل ارسالها للشيت ---
+    function updateLocalTaskStatus(username, taskId, isCompleted) {
+        const user = boardData.find(u => u.username === username);
+        if (!user || !user.tasks) return;
+        const task = user.tasks.find(t => t.taskId == taskId);
+        if (task) {
+            task.isCompleted = !!isCompleted;
+        }
+    }
+
+    // --- دالة حفظ حالة المهمة (ترسل للشيت) ---
     function saveTaskStatus(username, taskId, isCompleted) {
-        fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${username}&taskId=${taskId}&isCompleted=${isCompleted}`)
+        fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${encodeURIComponent(taskId)}&isCompleted=${isCompleted}`)
+            .then(() => {
+                // تحقق فوراً (بما أن قمنا بتحديث boardData محلياً بالفعل)
+                checkIfAllTasksCompleted(username);
+            })
             .catch(error => console.error("Error updating task status:", error));
     }
 
@@ -916,6 +959,38 @@
             });
     }
 
+    // --- دوال التحقق من الانتهاء وتشغيل الألعاب النارية ---
+    function checkIfAllTasksCompleted(username) {
+        const userData = boardData.find(u => u.username === username);
+        if (userData && userData.tasks.length > 0) {
+            const allCompleted = userData.tasks.every(t => t.isCompleted === true || t.isCompleted === "true");
+            if (allCompleted) {
+                triggerFirework();
+            }
+        }
+    }
+
+    function triggerFirework() {
+        const duration = 3 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            confetti({
+                particleCount: 5,
+                spread: 70,
+                origin: { x: Math.random() }
+            });
+            confetti({
+                particleCount: 5,
+                spread: 70,
+                origin: { x: Math.random(), y: 0.6 }
+            });
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
     // --- دالة مساعدة لجلب البيانات (JSONP) ---
     function fetchData(url) {
         return new Promise((resolve, reject) => {
@@ -927,7 +1002,11 @@
             };
             const script = document.createElement('script');
             script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-            script.onerror = reject;
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Network error or JSONP failed'));
+            };
             document.body.appendChild(script);
         });
     }
@@ -947,6 +1026,6 @@
         document.getElementById('aboutModal').style.display = show ? 'flex' : 'none';
     }
 
-</script>
+    </script>
 </body>
 </html>
