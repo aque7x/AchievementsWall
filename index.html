@@ -178,7 +178,7 @@
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
             font-weight: bold;
-            transition: background-color: 0.3s, color 0.3s;
+            transition: background-color: 0.3s, color: 0.3s;
         }
         
         .header-actions button.logout-btn {
@@ -562,7 +562,7 @@
     let saveTimer;
     const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
-    // --- تحميل الصفحة والتحقق من تسجيل الدخول (تم تعديله) ---
+    // --- تحميل الصفحة والتحقق من تسجيل الدخول ---
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -585,25 +585,15 @@
                 const taskId = e.target.dataset.taskId;
                 const username = e.target.dataset.username;
                 const isCompleted = e.target.checked;
+                // تم حذف منطق التحقق القديم من هنا، وأصبحت هذه الدالة هي المسؤولة
                 saveTaskStatus(username, taskId, isCompleted);
-                
-                // --- كود التحقق من اكتمال المهام وتشغيل التأثير ---
-                const stickyNote = e.target.closest('.sticky-note');
-                if (stickyNote) {
-                    const allCheckboxes = stickyNote.querySelectorAll('.task-checkbox-item input[type="checkbox"]');
-                    const allTasksCompleted = Array.from(allCheckboxes).every(checkbox => checkbox.checked);
-
-                    if (allTasksCompleted && allCheckboxes.length > 0) {
-                        runFireworksEffect(); // استدعاء دالة التأثير
-                    }
-                }
             }
         });
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
     
-    // --- تمت إضافة دالة الألعاب النارية (بدون صوت) ---
+    // --- دالة الألعاب النارية (بدون صوت) ---
     async function runFireworksEffect() {
         await tsParticles.load({
             id: "tsparticles",
@@ -939,8 +929,15 @@
         toggleAdminSidebar(false);
     }
     
+    // --- دالة saveTaskStatus المحدثة ---
     function saveTaskStatus(username, taskId, isCompleted) {
         fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${username}&taskId=${taskId}&isCompleted=${isCompleted}`)
+            .then(response => {
+                // التحقق من الإشارة القادمة من الواجهة الخلفية
+                if (response && response.result === 'success' && response.allTasksCompleted === true) {
+                    runFireworksEffect(); // تشغيل التأثير فقط إذا كانت كل المهام مكتملة
+                }
+            })
             .catch(error => console.error("Error updating task status:", error));
     }
 
