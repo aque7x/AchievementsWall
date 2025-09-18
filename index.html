@@ -178,7 +178,7 @@
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
             font-weight: bold;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color: 0.3s, color 0.3s;
         }
         
         .header-actions button.logout-btn {
@@ -552,7 +552,6 @@
     </div>
     
     <div id="tsparticles"></div>
-    <audio id="celebrationSound" src="./fireworks_launch.mp3" preload="auto"></audio>
     
     <script>
     // --- المتغيرات العامة ---
@@ -595,7 +594,7 @@
                     const allTasksCompleted = Array.from(allCheckboxes).every(checkbox => checkbox.checked);
 
                     if (allTasksCompleted && allCheckboxes.length > 0) {
-                        runSyncedFireworks(); // استدعاء دالة التأثير
+                        runFireworksEffect(); // استدعاء دالة التأثير
                     }
                 }
             }
@@ -604,9 +603,8 @@
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
     
-    // --- تمت إضافة دالة الألعاب النارية هنا ---
-    async function runSyncedFireworks() {
-        document.getElementById('celebrationSound').play();
+    // --- تمت إضافة دالة الألعاب النارية (بدون صوت) ---
+    async function runFireworksEffect() {
         await tsParticles.load({
             id: "tsparticles",
             options: {
