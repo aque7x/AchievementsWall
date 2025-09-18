@@ -34,6 +34,7 @@
             line-height: 1.6;
         }
 
+        /* --- شاشة التحميل --- */
         #loading {
             position: fixed;
             top: 0;
@@ -63,83 +64,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        #fireworksContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-            display: none;
-        }
-
-        .firework {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            animation: firework-explosion 1.5s ease-out forwards;
-        }
-
-        .firework-particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            animation: particle-fade 2s ease-out forwards;
-        }
-
-        @keyframes firework-explosion {
-            0% {
-                transform: scale(0);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.5);
-                opacity: 0.8;
-            }
-            100% {
-                transform: scale(3);
-                opacity: 0;
-            }
-        }
-
-        @keyframes particle-fade {
-            0% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: scale(0.3) translateY(100px);
-            }
-        }
-
-        .celebration-message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 50px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            font-size: 24px;
-            font-weight: bold;
-            text-align: center;
-            z-index: 10000;
-            animation: celebration-bounce 0.6s ease-out;
-            display: none;
-        }
-
-        @keyframes celebration-bounce {
-            0% { transform: translate(-50%, -50%) scale(0.3); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-        }
-
+        /* --- شاشة تسجيل الدخول --- */
         #loginScreen {
             display: none;
             flex-direction: column;
@@ -216,6 +141,7 @@
             display: none;
         }
 
+        /* --- التطبيق الرئيسي --- */
         #mainApp {
             display: none;
         }
@@ -284,6 +210,7 @@
             gap: 25px;
         }
         
+        /* --- الملاحظات اللاصقة (Sticky Notes) --- */
         .sticky-note {
             background: var(--card-bg);
             border-radius: 12px;
@@ -350,6 +277,7 @@
             color: #888;
         }
 
+        /* --- تنسيقات قائمة المهام داخل النوتة --- */
         .note-tasks-list {
             border-top: 1px solid #f0f0f0;
             margin-top: 15px;
@@ -366,7 +294,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 8px;
-            direction: rtl;
+            direction: rtl; /* لجعل الـ checkbox على اليمين */
         }
         .task-checkbox-item input[type="checkbox"] {
             margin-left: 10px;
@@ -394,16 +322,17 @@
             padding: 5px 0;
         }
         
+        /* --- لوحة تحكم الأدمن --- */
         #adminSidebar {
             position: fixed;
             top: 0;
-            right: 0;
+            right: 0; /* يبدأ من اليمين */
             width: 350px;
             height: 100%;
             background-color: white;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             padding: 20px;
-            transform: translateX(100%);
+            transform: translateX(100%); /* إخفاء اللوحة جهة اليمين */
             transition: transform 0.3s ease-in-out;
             z-index: 1001;
             display: flex;
@@ -460,13 +389,14 @@
             background: none;
             border: none;
             cursor: pointer;
-            margin-right: 8px;
+            margin-right: 8px; /* المسافة بين الأزرار */
             font-size: 16px;
         }
         #adminTasksList li .task-actions .edit-btn { color: #f0ad4e; }
         #adminTasksList li .task-actions .delete-btn { color: #d9534f; }
         #adminTasksList li .task-actions .save-btn { color: #5cb85c; display: none;}
         
+        /* --- النوافذ المنبثقة (Modals) --- */
         .modal {
             display: none;
             position: fixed;
@@ -497,6 +427,7 @@
             font-weight: bold;
             cursor: pointer;
         }
+        /* --- تنسيقات نافذة عن المطور --- */
         .developer-info p {
             margin-bottom: 10px;
         }
@@ -530,11 +461,6 @@
         <span>جاري تحميل البيانات...</span>
     </div>
 
-    <div id="fireworksContainer"></div>
-    <div id="celebrationMessage" class="celebration-message">
-        🎉 مبروك! لقد أنجزت جميع المهام الأسبوعية! 🎉
-    </div>
-
     <div id="loginScreen">
         <div class="login-container">
             <h1>حائط الإنجازات</h1>
@@ -564,7 +490,7 @@
         </header>
         <main>
             <div id="achievementGrid">
-            </div>
+                </div>
         </main>
     </div>
 
@@ -579,7 +505,7 @@
         <hr style="margin: 20px 0;">
         <h3>المهام الحالية</h3>
         <ul id="adminTasksList">
-        </ul>
+            </ul>
     </div>
     
     <div id="passwordModal" class="modal">
@@ -612,73 +538,16 @@
             </div>
         </div>
     </div>
-<script>
-    // --- Global Variables ---
-    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
+    <script>
+    // --- المتغيرات العامة ---
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // <--- !! ضع رابط النشر الخاص بك هنا
     let currentUser = null;
     let boardData = [];
     let updateInterval;
     let saveTimer;
     const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
-    // --- Fireworks Functions ---
-    function createFirework(x, y) {
-        const firework = document.createElement('div');
-        firework.className = 'firework';
-        firework.style.left = x + 'px';
-        firework.style.top = y + 'px';
-        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffd93d', '#ff9ff3', '#54a0ff'];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        firework.style.backgroundColor = color;
-        document.getElementById('fireworksContainer').appendChild(firework);
-        for (let i = 0; i < 12; i++) {
-            createFireworkParticle(x, y, color);
-        }
-        setTimeout(() => {
-            if (firework.parentNode) {
-                firework.parentNode.removeChild(firework);
-            }
-        }, 1500);
-    }
-
-    function createFireworkParticle(x, y, color) {
-        const particle = document.createElement('div');
-        particle.className = 'firework-particle';
-        particle.style.backgroundColor = color;
-        const angle = Math.random() * 2 * Math.PI;
-        const velocity = 50 + Math.random() * 50;
-        const particleX = x + Math.cos(angle) * velocity;
-        const particleY = y + Math.sin(angle) * velocity;
-        particle.style.left = particleX + 'px';
-        particle.style.top = particleY + 'px';
-        document.getElementById('fireworksContainer').appendChild(particle);
-        setTimeout(() => {
-            if (particle.parentNode) {
-                particle.parentNode.removeChild(particle);
-            }
-        }, 2000);
-    }
-
-    function triggerFireworks() {
-        const container = document.getElementById('fireworksContainer');
-        const message = document.getElementById('celebrationMessage');
-        container.style.display = 'block';
-        message.style.display = 'block';
-        for (let i = 0; i < 8; i++) {
-            setTimeout(() => {
-                const x = Math.random() * window.innerWidth;
-                const y = Math.random() * (window.innerHeight * 0.6) + 50;
-                createFirework(x, y);
-            }, i * 200);
-        }
-        setTimeout(() => {
-            container.style.display = 'none';
-            message.style.display = 'none';
-            container.innerHTML = '';
-        }, 4000);
-    }
-
-    // --- Page Load and Login Check ---
+    // --- تحميل الصفحة والتحقق من تسجيل الدخول ---
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -686,6 +555,7 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
+            
             if (currentUser.type === 'admin') {
                 showAdminButton();
             }
@@ -694,7 +564,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'flex';
         }
-        
+
         document.getElementById('achievementGrid').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
                 const taskId = e.target.dataset.taskId;
@@ -703,11 +573,11 @@
                 saveTaskStatus(username, taskId, isCompleted);
             }
         });
-
+        
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
-    // --- Admin UI Functions ---
+    // --- دوال واجهة الأدمن ---
     function showAdminButton() {
         const adminBtn = document.createElement('button');
         adminBtn.className = 'admin-btn';
@@ -716,6 +586,7 @@
         const headerActions = document.querySelector('.header-actions');
         headerActions.insertBefore(adminBtn, headerActions.firstChild);
     }
+    
     function toggleAdminSidebar(show) {
         document.getElementById('adminSidebar').classList.toggle('open', show);
         document.getElementById('sidebarOverlay').classList.toggle('open', show);
@@ -723,6 +594,7 @@
             fetchAdminTasks();
         }
     }
+
     function fetchAdminTasks() {
         const list = document.getElementById('adminTasksList');
         list.innerHTML = '<li>جاري تحميل المهام...</li>';
@@ -748,6 +620,7 @@
                 }
             });
     }
+
     function adminAddTask(event) {
         event.preventDefault();
         const input = document.getElementById('newTaskInput');
@@ -771,6 +644,7 @@
                 addButton.textContent = '➕ إضافة مهمة';
             });
     }
+
     function handleAdminTaskAction(event) {
         const target = event.target.closest('button');
         if (!target) return;
@@ -806,8 +680,8 @@
             }
         }
     }
-
-    // --- Data Fetching and UI Rendering ---
+    
+    // --- دوال جلب البيانات والتحديث ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
         fetchData(GOOGLE_SHEET_URL)
@@ -824,6 +698,7 @@
                 updateInterval = setInterval(updateData, 10000);
             });
     }
+
     function updateData() {
         fetchData(GOOGLE_SHEET_URL)
             .then(result => {
@@ -833,6 +708,7 @@
             }).catch(error => console.error("Update failed:", error));
     }
 
+    // --- دوال الواجهة الرسومية (UI) ---
     function renderBoardFirstTime() {
         const grid = document.getElementById('achievementGrid');
         grid.innerHTML = '';
@@ -843,6 +719,7 @@
             }
         });
     }
+
     function updateBoardUI(newBoardData) {
         const grid = document.getElementById('achievementGrid');
         const newIds = new Set(newBoardData.map(d => d.id));
@@ -873,10 +750,13 @@
         });
         boardData = newBoardData;
     }
+
+    // --- دوال إنشاء العناصر ---
     function createStickyNoteElement(cardData) {
         const card = document.createElement('div');
         card.className = 'sticky-note';
         card.dataset.id = cardData.id;
+
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
         const canEditAchievement = currentUser.type === 'admin' || isOwner;
         const colorClass = colors[cardData.id % colors.length];
@@ -908,9 +788,11 @@
         }
         return card;
     }
+
     function createTasksHTML(cardData) {
         let tasksHTML = '<h4>المهام الأسبوعية</h4>';
         const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
+
         if (cardData.tasks && cardData.tasks.length > 0) {
             cardData.tasks.forEach(task => {
                 const checkboxId = `task-${task.taskId}-${cardData.username}`;
@@ -930,7 +812,7 @@
         return tasksHTML;
     }
 
-    // --- Server Communication Functions ---
+    // --- دوال الاتصال بالخادم ---
     function login(event) {
         event.preventDefault();
         const usernameInput = document.getElementById('username');
@@ -985,12 +867,6 @@
     
     function saveTaskStatus(username, taskId, isCompleted) {
         fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${username}&taskId=${taskId}&isCompleted=${isCompleted}`)
-            .then(response => {
-                if (response && response.result === 'success' && response.allTasksCompleted === true) {
-                    console.log("Server confirmed all tasks are completed. Triggering fireworks!");
-                    triggerFireworks();
-                }
-            })
             .catch(error => console.error("Error updating task status:", error));
     }
 
@@ -1040,7 +916,7 @@
             });
     }
 
-    // --- JSONP Fetch Helper ---
+    // --- دالة مساعدة لجلب البيانات (JSONP) ---
     function fetchData(url) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
@@ -1056,7 +932,7 @@
         });
     }
     
-    // --- Modal Functions ---
+    // --- دوال النوافذ المنبثقة ---
     function togglePasswordModal(show) {
         const modal = document.getElementById('passwordModal');
         if(show) {
@@ -1070,6 +946,7 @@
     function toggleAboutModal(show) {
         document.getElementById('aboutModal').style.display = show ? 'flex' : 'none';
     }
+
 </script>
 </body>
 </html>
