@@ -567,6 +567,7 @@
         <header>
             <div id="userInfo"></div>
             <div class="header-actions">
+                <button onclick="triggerFireworks()">اختبار الألعاب النارية</button>
                 <button onclick="togglePasswordModal(true)">تغيير كلمة المرور</button>
                 <button onclick="toggleAboutModal(true)">عن المطور</button>
                 <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
@@ -706,12 +707,20 @@
     }
 
     function checkTaskCompletion(username) {
+        console.log('Checking task completion for:', username);
         const userData = boardData.find(user => user.username === username);
-        if (!userData || !userData.tasks || userData.tasks.length === 0) return;
+        console.log('User data:', userData);
+        
+        if (!userData || !userData.tasks || userData.tasks.length === 0) {
+            console.log('No user data or tasks found');
+            return;
+        }
 
         const allTasksCompleted = userData.tasks.every(task => task.isCompleted);
+        console.log('All tasks completed:', allTasksCompleted, 'Total tasks:', userData.tasks.length);
         
-        if (allTasksCompleted) {
+        if (allTasksCompleted && userData.tasks.length > 0) {
+            console.log('Triggering fireworks!');
             // Trigger fireworks celebration
             setTimeout(() => {
                 triggerFireworks();
@@ -744,9 +753,17 @@
                 const isCompleted = e.target.checked;
                 saveTaskStatus(username, taskId, isCompleted);
                 
-                // Check if all tasks are completed for fireworks
+                // Check if all tasks are completed for fireworks - Updated Logic
                 if (isCompleted && currentUser.username === username) {
-                    setTimeout(() => checkTaskCompletion(username), 100);
+                    // Update the boardData immediately for current user
+                    const userData = boardData.find(user => user.username === username);
+                    if (userData && userData.tasks) {
+                        const task = userData.tasks.find(t => t.taskId === taskId);
+                        if (task) {
+                            task.isCompleted = isCompleted;
+                        }
+                    }
+                    setTimeout(() => checkTaskCompletion(username), 200);
                 }
             }
         });
