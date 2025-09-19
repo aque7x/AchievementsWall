@@ -70,24 +70,78 @@
         #adminSidebar.open { transform: translateX(0); }
         #sidebarOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; }
         #sidebarOverlay.open { display: block; }
+        .modal { display: none; position: fixed; z-index: 500; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+        .close-btn { position: absolute; top: 15px; left: 15px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="loading"></div>
-    <div id="loginScreen"></div>
+    <div id="loading"><div class="spinner"></div><span>جاري تحميل البيانات...</span></div>
+
+    <div id="loginScreen">
+        <div class="login-container">
+            <h1>حائط الإنجازات</h1>
+            <form onsubmit="login(event)">
+                <div class="input-group"><label for="username">اسم المستخدم</label><input type="text" id="username" required></div>
+                <div class="input-group"><label for="password">كلمة المرور</label><input type="password" id="password" required></div>
+                <button type="submit">تسجيل الدخول</button>
+            </form>
+            <div id="errorMessage"></div>
+        </div>
+    </div>
+
     <div id="mainApp">
-        <header></header>
+        <header>
+            <div id="userInfo"></div>
+            <div class="header-actions">
+                <button onclick="togglePasswordModal(true)">تغيير كلمة المرور</button>
+                <button onclick="toggleAboutModal(true)">عن المطور</button>
+                <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+            </div>
+        </header>
         <main>
-            <div id="globalProgressWrapper"></div>
+            <div id="globalProgressWrapper">
+                <span id="progressLabel">معدل الإنجاز العام</span>
+                <div id="globalProgressContainer"><div id="globalProgressBar"></div></div>
+                <span id="progressPercentage">0%</span>
+            </div>
             <div id="achievementGrid"></div>
         </main>
     </div>
-    <div id="adminSidebar"></div>
-    <div id="passwordModal" class="modal"></div>
-    <div id="aboutModal" class="modal"></div>
+
+    <div id="sidebarOverlay" onclick="toggleAdminSidebar(false)"></div>
+    <div id="adminSidebar">
+        <h2>إدارة المهام الأسبوعية</h2>
+        <form id="addTaskForm" onsubmit="adminAddTask(event)">
+            <input type="text" id="newTaskInput" placeholder="اكتب محتوى المهمة الجديدة..." required>
+            <button type="submit">➕ إضافة مهمة</button>
+        </form>
+        <hr style="margin: 20px 0;">
+        <h3>المهام الحالية</h3>
+        <ul id="adminTasksList"></ul>
+    </div>
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="togglePasswordModal(false)">&times;</span>
+            <h2>تغيير كلمة المرور</h2>
+            <form id="passwordChangeForm" onsubmit="handleChangePassword(event)">
+                <div class="input-group"><label for="oldPassword">كلمة المرور القديمة</label><input type="password" id="oldPassword" required></div>
+                <div class="input-group"><label for="newPassword">كلمة المرور الجديدة</label><input type="password" id="newPassword" required></div>
+                <div class="input-group"><label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label><input type="password" id="confirmNewPassword" required></div>
+                <button type="submit">حفظ التغييرات</button>
+                <div id="passwordChangeError" style="color:red; margin-top:10px; display:none;"></div>
+                <div id="passwordChangeSuccess" style="color:green; margin-top:10px; display:none;"></div>
+            </form>
+        </div>
+    </div>
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleAboutModal(false)">&times;</span>
+            <h2>عن المطور</h2>
+            </div>
+    </div>
 
     <script src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
 
@@ -98,7 +152,6 @@
     const IMAGEKIT_PUBLIC_KEY = "public_tTmPgzwDSWir5cjWSl93XrjOU1o=";
     const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/mveyetacfx";
     
-    // تهيئة ImageKit SDK
     const imagekit = new ImageKit({
         publicKey: IMAGEKIT_PUBLIC_KEY,
         urlEndpoint: IMAGEKIT_URL_ENDPOINT,
@@ -111,8 +164,6 @@
     let saveTimer;
     const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
-    // --- بقية كود جافاسكربت ---
-    
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -142,7 +193,8 @@
                 }).catch(error => { checkbox.checked = !isCompleted; alert('فشل الاتصال بالخادم.'); }).finally(() => { checkbox.disabled = false; });
             }
         });
-        document.getElementById('adminTasksList')?.addEventListener('click', handleAdminTaskAction);
+        const adminTasksList = document.getElementById('adminTasksList');
+        if(adminTasksList) adminTasksList.addEventListener('click', handleAdminTaskAction);
     });
 
     function createStickyNoteElement(cardData) {
@@ -210,12 +262,80 @@
                 });
         });
     }
-
-    // --- بقية دوال جافاسكربت تبقى كما هي ---
-    // (login, logout, updateGlobalProgressBar, etc.)
+    
     function fetchData(url) { return new Promise((resolve, reject) => { const callbackName = `jsonp_callback_${Math.round(100000 * Math.random())}`; window[callbackName] = (data) => { delete window[callbackName]; document.body.removeChild(script); resolve(data); }; const script = document.createElement('script'); script.src = `${url}${(url.includes('?') ? '&' : '?')}callback=${callbackName}`; script.onerror = () => { delete window[callbackName]; document.body.removeChild(script); reject(new Error('Network error')); }; document.body.appendChild(script); }); }
-    // ... all other functions should be here ...
 
+    function updateGlobalProgressBar() {
+        const wrapper = document.getElementById('globalProgressWrapper');
+        const bar = document.getElementById('globalProgressBar');
+        const percentageText = document.getElementById('progressPercentage');
+        if (!boardData || boardData.length === 0) { if(wrapper) wrapper.style.display = 'none'; return; }
+        let totalTasks = 0, completedTasks = 0;
+        boardData.forEach(user => { if(user.tasks && Array.isArray(user.tasks)) { totalTasks += user.tasks.length; completedTasks += user.tasks.filter(t => t.isCompleted).length; } });
+        if (totalTasks === 0) { if(wrapper) wrapper.style.display = 'none'; return; } else { if(wrapper) wrapper.style.display = 'flex'; }
+        const percentage = (completedTasks / totalTasks) * 100;
+        if(bar) bar.style.width = percentage + '%';
+        if(percentageText) percentageText.textContent = `${Math.round(percentage)}%`;
+    }
+
+    function initialLoad() {
+        document.getElementById('loading').style.display = 'flex';
+        fetchData(GOOGLE_SHEET_URL).then(result => {
+            if (result.result === 'success') {
+                boardData = normalizeBoardData(result.data);
+                renderBoardFirstTime();
+                updateGlobalProgressBar();
+            } else { throw new Error(result.message); }
+        }).catch(error => console.error("Error during initial load:", error)).finally(() => {
+            document.getElementById('loading').style.display = 'none';
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(updateData, 10000);
+        });
+    }
+
+    function updateData() { fetchData(GOOGLE_SHEET_URL).then(result => { if (result.result === 'success') { const normalized = normalizeBoardData(result.data); updateBoardUI(normalized); } }).catch(error => console.error("Update failed:", error)); }
+    function normalizeBoardData(dataArray) { return dataArray.map(u => { if (u.tasks && Array.isArray(u.tasks)) { u.tasks = u.tasks.map(t => ({ ...t, isCompleted: (t.isCompleted === true || String(t.isCompleted).toLowerCase() === "true") })); } else { u.tasks = []; } return u; }); }
+    function renderBoardFirstTime() { const grid = document.getElementById('achievementGrid'); if(!grid) return; grid.innerHTML = ''; boardData.forEach(cardData => { if (cardData.id) { const card = createStickyNoteElement(cardData); grid.appendChild(card); } }); }
+    function updateBoardUI(newBoardData) {
+        const grid = document.getElementById('achievementGrid');
+        if(!grid) return;
+        const activeTextarea = document.activeElement.tagName === 'TEXTAREA' ? document.activeElement : null;
+        newBoardData.forEach(cardData => {
+            if (!cardData.id) return;
+            const existingCard = grid.querySelector(`.sticky-note[data-id='${cardData.id}']`);
+            if (existingCard) {
+                const textarea = existingCard.querySelector('.achievement-text');
+                if (textarea !== activeTextarea && textarea.value !== cardData.achievement) { textarea.value = cardData.achievement; }
+                const tasksListDiv = existingCard.querySelector('.note-tasks-list');
+                const existingCheckboxes = tasksListDiv.querySelectorAll('input[type="checkbox"]:disabled');
+                if (tasksListDiv && existingCheckboxes.length === 0) { tasksListDiv.innerHTML = createTasksHTML(cardData); }
+                const profilePic = existingCard.querySelector('.profile-picture');
+                const newProfilePicUrl = cardData.profilePictureUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cardData.name)}&background=random&color=fff&size=80`;
+                if (profilePic.src !== newProfilePicUrl) { profilePic.src = newProfilePicUrl; }
+            } else { const card = createStickyNoteElement(cardData); grid.appendChild(card); }
+        });
+        const newIds = new Set(newBoardData.map(d => String(d.id)));
+        grid.querySelectorAll('.sticky-note').forEach(card => { if (!newIds.has(card.dataset.id)) { card.remove(); } });
+        boardData = newBoardData;
+        updateGlobalProgressBar();
+    }
+    
+    function createTasksHTML(cardData) { let tasksHTML = '<h4>المهام الأسبوعية</h4>'; const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username; if (cardData.tasks && cardData.tasks.length > 0) { cardData.tasks.forEach(task => { const checkboxId = `task-${task.taskId}-${cardData.username}`; tasksHTML += `<div class="task-checkbox-item"><input type="checkbox" id="${checkboxId}" data-task-id="${task.taskId}" data-username="${cardData.username}" ${task.isCompleted ? 'checked' : ''} ${!isOwner ? 'disabled' : ''}><label for="${checkboxId}">${task.taskContent}</label></div>`; }); } else { tasksHTML += '<p class="no-tasks-note">لا توجد مهام حالياً.</p>'; } return tasksHTML; }
+    function login(event) { event.preventDefault(); const form = event.target; const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'جاري التحقق...'; const errorDiv = document.getElementById('errorMessage'); errorDiv.style.display = 'none'; fetchData(`${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(form.username.value.toLowerCase())}&password=${encodeURIComponent(form.password.value)}`).then(res => { if (res.result === 'success') { currentUser = res.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); document.getElementById('loginScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`; if (currentUser.type === 'admin') showAdminButton(); initialLoad(); } else { errorDiv.textContent = res.message; errorDiv.style.display = 'block'; } }).catch(() => { errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; }).finally(() => { btn.disabled = false; btn.textContent = 'تسجيل الدخول'; }); }
+    function logout() { localStorage.removeItem('currentUser'); currentUser = null; clearInterval(updateInterval); window.location.reload(); }
+    function updateLocalTaskStatus(username, taskId, isCompleted) { const user = boardData.find(u => u.username === username); if (user && user.tasks) { const task = user.tasks.find(t => t.taskId == taskId); if (task) task.isCompleted = !!isCompleted; } }
+    function saveTaskStatus(username, taskId, isCompleted) { return fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${taskId}&isCompleted=${isCompleted}`); }
+    function saveAchievementToSheet(id, achievementText) { const data = { action: 'update', id: id, field: 'achievement', value: achievementText }; return fetchData(`${GOOGLE_SHEET_URL}?data=${encodeURIComponent(JSON.stringify(data))}`); }
+    function handleChangePassword(event) { event.preventDefault(); /* ... */ }
+    function checkIfAllTasksCompleted(username) { const user = boardData.find(u => u.username === username); if (user && user.tasks && user.tasks.length > 0 && user.tasks.every(t => t.isCompleted)) triggerFirework(); }
+    function triggerFirework() { const sound = document.getElementById('celebrationSound'); if (sound && sound.paused) { sound.currentTime = 0; sound.play().catch(err => console.log("Audio failed:", err)); } const end = Date.now() + 3000; (function frame() { confetti({ particleCount: 3, spread: 60, origin: { y: 0.6 } }); if (Date.now() < end) requestAnimationFrame(frame); }()); }
+    function togglePasswordModal(show) { const modal = document.getElementById('passwordModal'); if(modal) modal.style.display = show ? 'flex' : 'none'; }
+    function toggleAboutModal(show) { const modal = document.getElementById('aboutModal'); if(modal) modal.style.display = show ? 'flex' : 'none'; }
+    function showAdminButton() { const adminBtn = document.createElement('button'); adminBtn.className = 'admin-btn'; adminBtn.textContent = 'إدارة المهام'; adminBtn.onclick = () => toggleAdminSidebar(true); const headerActions = document.querySelector('.header-actions'); if(headerActions) headerActions.insertBefore(adminBtn, headerActions.firstChild); }
+    function toggleAdminSidebar(show) { const sidebar = document.getElementById('adminSidebar'); const overlay = document.getElementById('sidebarOverlay'); if(sidebar) sidebar.classList.toggle('open', show); if(overlay) overlay.classList.toggle('open', show); if (show) fetchAdminTasks(); }
+    function fetchAdminTasks() { /* ... */ }
+    function adminAddTask(event) { /* ... */ }
+    function handleAdminTaskAction(event) { /* ... */ }
     </script>
 </body>
 </html>
