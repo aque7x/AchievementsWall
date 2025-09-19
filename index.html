@@ -156,7 +156,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            height: 70px; /* تحديد ارتفاع ثابت للهيدر */
+            height: 70px; 
         }
         
         #userInfo {
@@ -205,35 +205,58 @@
             padding: 25px;
         }
 
-        /* --- شريط التقدم العام --- */
-        #globalProgressContainer {
+        /* --- شريط التقدم بتصميم مودرن --- */
+        #globalProgressWrapper {
             position: sticky;
-            top: 70px; /* يثبت أسفل الهيدر */
+            top: 70px;
             z-index: 99;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 15px;
+            margin-bottom: 25px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-color) 0px 4px 12px;
+        }
+
+        #progressLabel {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        #globalProgressContainer {
+            flex-grow: 1;
+            height: 12px;
             background-color: #e9ecef;
             border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 25px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         #globalProgressBar {
-            height: 25px;
-            width: 0%; /* يبدأ من الصفر */
-            background: linear-gradient(90deg, var(--primary-color) 0%, #5cb85c 100%);
-            border-radius: 7px;
-            transition: width 0.7s cubic-bezier(0.25, 0.1, 0.25, 1); /* حركة ناعمة */
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
+            background: linear-gradient(90deg, #4776E6, #8E54E9);
+            background-size: 200% 200%;
+            animation: gradient-animation 3s ease infinite;
         }
 
-        #globalProgressText {
-            color: white;
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #progressPercentage {
+            font-size: 16px;
             font-weight: bold;
-            font-size: 14px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            color: var(--primary-color);
+            min-width: 50px;
+            text-align: right;
         }
         /* --- نهاية تنسيقات شريط التقدم --- */
 
@@ -244,7 +267,6 @@
             gap: 25px;
         }
         
-        /* --- الملاحظات اللاصقة (Sticky Notes) --- */
         .sticky-note {
             background: var(--card-bg);
             border-radius: 12px;
@@ -311,7 +333,6 @@
             color: #888;
         }
 
-        /* --- تنسيقات قائمة المهام داخل النوتة --- */
         .note-tasks-list {
             border-top: 1px solid #f0f0f0;
             margin-top: 15px;
@@ -328,7 +349,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 8px;
-            direction: rtl; /* لجعل الـ checkbox على اليمين */
+            direction: rtl; 
         }
         .task-checkbox-item input[type="checkbox"] {
             margin-left: 10px;
@@ -357,7 +378,6 @@
             padding: 5px 0;
         }
         
-        /* --- لوحة تحكم الأدمن --- */
         #adminSidebar {
             position: fixed;
             top: 0;
@@ -431,7 +451,6 @@
         #adminTasksList li .task-actions .delete-btn { color: #d9534f; }
         #adminTasksList li .task-actions .save-btn { color: #5cb85c; display: none;}
         
-        /* --- النوافذ المنبثقة (Modals) --- */
         .modal {
             display: none;
             position: fixed;
@@ -462,7 +481,6 @@
             font-weight: bold;
             cursor: pointer;
         }
-        /* --- تنسيقات نافذة عن المطور --- */
         .developer-info p {
             margin-bottom: 10px;
         }
@@ -524,10 +542,12 @@
             </div>
         </header>
         <main>
-            <div id="globalProgressContainer">
-                <div id="globalProgressBar">
-                    <span id="globalProgressText"></span>
+            <div id="globalProgressWrapper">
+                <span id="progressLabel">معدل الإنجاز العام</span>
+                <div id="globalProgressContainer">
+                    <div id="globalProgressBar"></div>
                 </div>
+                <span id="progressPercentage">0%</span>
             </div>
             <div id="achievementGrid">
                 </div>
@@ -624,7 +644,7 @@
                         if (response.result === 'success' && response.data) {
                             updateLocalTaskStatus(response.data.username, response.data.taskId, response.data.isCompleted);
                             checkIfAllTasksCompleted(response.data.username);
-                            updateGlobalProgressBar(); // --- تحديث الشريط فوراً ---
+                            updateGlobalProgressBar();
                         } else {
                             checkbox.checked = !isCompleted;
                             alert('حدث خطأ أثناء حفظ التغيير. يرجى المحاولة مرة أخرى.');
@@ -644,14 +664,14 @@
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
-    // --- دالة تحديث شريط التقدم العام ---
+    // --- دالة تحديث شريط التقدم العام (تم تعديلها) ---
     function updateGlobalProgressBar() {
-        const container = document.getElementById('globalProgressContainer');
+        const wrapper = document.getElementById('globalProgressWrapper');
         const bar = document.getElementById('globalProgressBar');
-        const text = document.getElementById('globalProgressText');
+        const percentageText = document.getElementById('progressPercentage');
 
         if (!boardData || boardData.length === 0) {
-            container.style.display = 'none'; // إخفاء الشريط إذا لا يوجد بيانات
+            wrapper.style.display = 'none';
             return;
         }
 
@@ -666,16 +686,16 @@
         });
 
         if (totalTasks === 0) {
-            container.style.display = 'none'; // إخفاء الشريط إذا لا توجد مهام
+            wrapper.style.display = 'none';
             return;
         } else {
-            container.style.display = 'block'; // إظهار الشريط
+            wrapper.style.display = 'flex';
         }
 
         const percentage = (completedTasks / totalTasks) * 100;
         
         bar.style.width = percentage + '%';
-        text.textContent = `معدل الإنجاز العام: ${Math.round(percentage)}%`;
+        percentageText.textContent = `${Math.round(percentage)}%`;
     }
 
     // --- دوال واجهة الأدمن ---
@@ -793,7 +813,7 @@
                 if (result.result === 'success') {
                     boardData = normalizeBoardData(result.data);
                     renderBoardFirstTime();
-                    updateGlobalProgressBar(); // --- تحديث الشريط عند التحميل الأولي ---
+                    updateGlobalProgressBar(); 
                 } else { throw new Error(result.message); }
             })
             .catch(error => console.error("Error during initial load:", error))
@@ -810,7 +830,6 @@
                 if (result.result === 'success') {
                     const normalized = normalizeBoardData(result.data);
                     updateBoardUI(normalized);
-                    // updateGlobalProgressBar() is called within updateBoardUI
                 }
             }).catch(error => console.error("Update failed:", error));
     }
@@ -855,7 +874,7 @@
                 }
                 const tasksListDiv = existingCard.querySelector('.note-tasks-list');
                 const existingCheckboxes = new Set(Array.from(tasksListDiv.querySelectorAll('input[type="checkbox"]:disabled')));
-                if (tasksListDiv && existingCheckboxes.size === 0) {
+                if (tasksListDiv && existingCheckboxes.size === 0) { 
                     tasksListDiv.innerHTML = createTasksHTML(cardData);
                 }
             } else {
@@ -871,7 +890,7 @@
             }
         });
         boardData = newBoardData;
-        updateGlobalProgressBar(); // --- تحديث الشريط مع كل تحديث دوري للبيانات ---
+        updateGlobalProgressBar(); 
     }
 
 
