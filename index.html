@@ -156,6 +156,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            height: 70px; /* تحديد ارتفاع ثابت للهيدر */
         }
         
         #userInfo {
@@ -203,6 +204,39 @@
         main {
             padding: 25px;
         }
+
+        /* --- شريط التقدم العام --- */
+        #globalProgressContainer {
+            position: sticky;
+            top: 70px; /* يثبت أسفل الهيدر */
+            z-index: 99;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 25px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        #globalProgressBar {
+            height: 25px;
+            width: 0%; /* يبدأ من الصفر */
+            background: linear-gradient(90deg, var(--primary-color) 0%, #5cb85c 100%);
+            border-radius: 7px;
+            transition: width 0.7s cubic-bezier(0.25, 0.1, 0.25, 1); /* حركة ناعمة */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #globalProgressText {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        /* --- نهاية تنسيقات شريط التقدم --- */
+
 
         #achievementGrid {
             display: grid;
@@ -490,6 +524,11 @@
             </div>
         </header>
         <main>
+            <div id="globalProgressContainer">
+                <div id="globalProgressBar">
+                    <span id="globalProgressText"></span>
+                </div>
+            </div>
             <div id="achievementGrid">
                 </div>
         </main>
@@ -543,6 +582,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
+
     <script>
     // --- المتغيرات العامة ---
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
@@ -584,6 +624,7 @@
                         if (response.result === 'success' && response.data) {
                             updateLocalTaskStatus(response.data.username, response.data.taskId, response.data.isCompleted);
                             checkIfAllTasksCompleted(response.data.username);
+                            updateGlobalProgressBar(); // --- تحديث الشريط فوراً ---
                         } else {
                             checkbox.checked = !isCompleted;
                             alert('حدث خطأ أثناء حفظ التغيير. يرجى المحاولة مرة أخرى.');
@@ -602,6 +643,40 @@
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
+
+    // --- دالة تحديث شريط التقدم العام ---
+    function updateGlobalProgressBar() {
+        const container = document.getElementById('globalProgressContainer');
+        const bar = document.getElementById('globalProgressBar');
+        const text = document.getElementById('globalProgressText');
+
+        if (!boardData || boardData.length === 0) {
+            container.style.display = 'none'; // إخفاء الشريط إذا لا يوجد بيانات
+            return;
+        }
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+
+        boardData.forEach(user => {
+            if(user.tasks && Array.isArray(user.tasks)) {
+                totalTasks += user.tasks.length;
+                completedTasks += user.tasks.filter(task => task.isCompleted).length;
+            }
+        });
+
+        if (totalTasks === 0) {
+            container.style.display = 'none'; // إخفاء الشريط إذا لا توجد مهام
+            return;
+        } else {
+            container.style.display = 'block'; // إظهار الشريط
+        }
+
+        const percentage = (completedTasks / totalTasks) * 100;
+        
+        bar.style.width = percentage + '%';
+        text.textContent = `معدل الإنجاز العام: ${Math.round(percentage)}%`;
+    }
 
     // --- دوال واجهة الأدمن ---
     function showAdminButton() {
@@ -718,6 +793,7 @@
                 if (result.result === 'success') {
                     boardData = normalizeBoardData(result.data);
                     renderBoardFirstTime();
+                    updateGlobalProgressBar(); // --- تحديث الشريط عند التحميل الأولي ---
                 } else { throw new Error(result.message); }
             })
             .catch(error => console.error("Error during initial load:", error))
@@ -734,6 +810,7 @@
                 if (result.result === 'success') {
                     const normalized = normalizeBoardData(result.data);
                     updateBoardUI(normalized);
+                    // updateGlobalProgressBar() is called within updateBoardUI
                 }
             }).catch(error => console.error("Update failed:", error));
     }
@@ -794,6 +871,7 @@
             }
         });
         boardData = newBoardData;
+        updateGlobalProgressBar(); // --- تحديث الشريط مع كل تحديث دوري للبيانات ---
     }
 
 
