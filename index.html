@@ -303,6 +303,7 @@
         }
         .task-checkbox-item input[type="checkbox"]:disabled {
             cursor: not-allowed;
+            opacity: 0.6; /* --- إضافة بسيطة لتمييز العنصر المعطل --- */
         }
         .task-checkbox-item label {
             font-size: 14px;
@@ -540,10 +541,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <audio id="celebrationSound" src="https://github.com/Bilal-z-projects/achievement-wall/raw/main/sounds/celebration.mp3" preload="auto"></audio>
 
     <script>
     // --- المتغيرات العامة ---
-    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec'; // ضع رابطك إن اختلف
+    const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
     let currentUser = null;
     let boardData = [];
     let updateInterval;
@@ -568,22 +571,50 @@
             document.getElementById('loginScreen').style.display = 'flex';
         }
 
+        // --- التعديل الجذري هنا (الحل رقم 3) ---
         document.getElementById('achievementGrid').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
-                const taskId = e.target.dataset.taskId;
-                const username = e.target.dataset.username;
-                const isCompleted = e.target.checked;
-                // 1) حدث البيانات محلياً فوراً ليتحقق checkIfAllTasksCompleted بدقة
-                updateLocalTaskStatus(username, taskId, isCompleted);
-                // 2) أرسل للتخزين في الشيت
-                saveTaskStatus(username, taskId, isCompleted);
+                const checkbox = e.target;
+                const taskId = checkbox.dataset.taskId;
+                const username = checkbox.dataset.username;
+                const isCompleted = checkbox.checked;
+
+                // الخطوة 1: تعطيل المربع لمنع الضغطات المتتالية
+                checkbox.disabled = true;
+
+                // الخطوة 2: إرسال الطلب للخادم وانتظار الرد المؤكد
+                saveTaskStatus(username, taskId, isCompleted)
+                    .then(response => {
+                        if (response.result === 'success' && response.data) {
+                            // الخطوة 3 (أ): تم الحفظ بنجاح، نقوم بتحديث بياناتنا المحلية بالبيانات المؤكدة من الخادم
+                            updateLocalTaskStatus(response.data.username, response.data.taskId, response.data.isCompleted);
+
+                            // الخطوة 4: التحقق من إتمام جميع المهام لتشغيل التأثيرات
+                            checkIfAllTasksCompleted(response.data.username);
+                        } else {
+                            // الخطوة 3 (ب): حدث خطأ من الخادم، نعكس التغيير في الواجهة (نرجع المربع لحالته القديمة)
+                            checkbox.checked = !isCompleted;
+                            alert('حدث خطأ أثناء حفظ التغيير. يرجى المحاولة مرة أخرى.');
+                        }
+                    })
+                    .catch(error => {
+                        // الخطوة 3 (ج): حدث خطأ في الشبكة، نعكس التغيير أيضاً
+                        console.error("Error saving task status:", error);
+                        checkbox.checked = !isCompleted;
+                        alert('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
+                    })
+                    .finally(() => {
+                        // الخطوة 5: إعادة تفعيل المربع في كل الحالات (نجاح أو فشل)
+                        checkbox.disabled = false;
+                    });
             }
         });
+        // --- نهاية التعديل ---
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
-    // --- دوال واجهة الأدمن ---
+    // --- دوال واجهة الأدمن (بدون تغيير) ---
     function showAdminButton() {
         const adminBtn = document.createElement('button');
         adminBtn.className = 'admin-btn';
@@ -682,7 +713,6 @@
                             taskTextSpan.textContent = newContent;
                             li.querySelector('.edit-btn').style.display = 'inline-block';
                             li.querySelector('.save-btn').style.display = 'none';
-                            // بعد تعديل محتوى المهمة، سنجدد واجهة الطلاب عند التحديث الدوري
                         } else {
                             alert('فشل التحديث');
                         }
@@ -691,7 +721,7 @@
         }
     }
     
-    // --- دوال جلب البيانات والتحديث ---
+    // --- دوال جلب البيانات والتحديث (بدون تغيير) ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
         fetchData(GOOGLE_SHEET_URL)
@@ -720,12 +750,10 @@
     }
 
     function normalizeBoardData(dataArray) {
-        // نتأكد أن قيم isCompleted كلها boolean بدلاً من نص
         return dataArray.map(u => {
             if (u.tasks && Array.isArray(u.tasks)) {
                 u.tasks = u.tasks.map(t => ({
-                    taskId: t.taskId,
-                    taskContent: t.taskContent,
+                    ...t,
                     isCompleted: (t.isCompleted === true || t.isCompleted === "true" || t.isCompleted === "TRUE")
                 }));
             } else {
@@ -735,7 +763,7 @@
         });
     }
 
-    // --- دوال الواجهة الرسومية (UI) ---
+    // --- دوال الواجهة الرسومية (UI) (بدون تغيير) ---
     function renderBoardFirstTime() {
         const grid = document.getElementById('achievementGrid');
         grid.innerHTML = '';
@@ -749,18 +777,19 @@
 
     function updateBoardUI(newBoardData) {
         const grid = document.getElementById('achievementGrid');
-        const newIds = new Set(newBoardData.map(d => d.id));
+        const activeTextarea = document.activeElement.tagName === 'TEXTAREA' ? document.activeElement : null;
 
         newBoardData.forEach(cardData => {
             if (!cardData.id) return;
             const existingCard = grid.querySelector(`.sticky-note[data-id='${cardData.id}']`);
             if (existingCard) {
                 const textarea = existingCard.querySelector('.achievement-text');
-                if (textarea && textarea.value !== cardData.achievement && document.activeElement !== textarea) {
+                if (textarea !== activeTextarea && textarea.value !== cardData.achievement) {
                     textarea.value = cardData.achievement;
                 }
                 const tasksListDiv = existingCard.querySelector('.note-tasks-list');
-                if (tasksListDiv) {
+                const existingCheckboxes = new Set(Array.from(tasksListDiv.querySelectorAll('input[type="checkbox"]:disabled')));
+                if (tasksListDiv && existingCheckboxes.size === 0) { // لا تحدث المهام إذا كان المستخدم يعدل فيها
                     tasksListDiv.innerHTML = createTasksHTML(cardData);
                 }
             } else {
@@ -769,16 +798,17 @@
             }
         });
 
+        const newIds = new Set(newBoardData.map(d => String(d.id)));
         grid.querySelectorAll('.sticky-note').forEach(card => {
-            const cardId = parseInt(card.dataset.id, 10);
-            if (!newIds.has(cardId)) {
+            if (!newIds.has(card.dataset.id)) {
                 card.remove();
             }
         });
         boardData = newBoardData;
     }
 
-    // --- دوال إنشاء العناصر ---
+
+    // --- دوال إنشاء العناصر (بدون تغيير) ---
     function createStickyNoteElement(cardData) {
         const card = document.createElement('div');
         card.className = 'sticky-note';
@@ -892,7 +922,7 @@
         toggleAdminSidebar(false);
     }
     
-    // --- دالة مساعدة لتحديث الحالة محلياً قبل ارسالها للشيت ---
+    // --- دالة مساعدة لتحديث الحالة محلياً بعد تأكيد الخادم ---
     function updateLocalTaskStatus(username, taskId, isCompleted) {
         const user = boardData.find(u => u.username === username);
         if (!user || !user.tasks) return;
@@ -902,14 +932,9 @@
         }
     }
 
-    // --- دالة حفظ حالة المهمة (ترسل للشيت) ---
+    // --- دالة حفظ حالة المهمة (ترسل للشيت وتعيد Promise) ---
     function saveTaskStatus(username, taskId, isCompleted) {
-        fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${encodeURIComponent(taskId)}&isCompleted=${isCompleted}`)
-            .then(() => {
-                // تحقق فوراً (بما أن قمنا بتحديث boardData محلياً بالفعل)
-                checkIfAllTasksCompleted(username);
-            })
-            .catch(error => console.error("Error updating task status:", error));
+        return fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${encodeURIComponent(taskId)}&isCompleted=${isCompleted}`);
     }
 
     function saveAchievementToSheet(id, achievementText) {
@@ -961,8 +986,8 @@
     // --- دوال التحقق من الانتهاء وتشغيل الألعاب النارية ---
     function checkIfAllTasksCompleted(username) {
         const userData = boardData.find(u => u.username === username);
-        if (userData && userData.tasks.length > 0) {
-            const allCompleted = userData.tasks.every(t => t.isCompleted === true || t.isCompleted === "true");
+        if (userData && userData.tasks && userData.tasks.length > 0) {
+            const allCompleted = userData.tasks.every(t => t.isCompleted);
             if (allCompleted) {
                 triggerFirework();
             }
@@ -970,17 +995,12 @@
     }
 
     function triggerFirework() {
-        // تشغيل الصوت
-       // تشغيل الصوت
-const sound = document.getElementById('celebrationSound');
-// -- الشرط الجديد هنا --
-if (sound && sound.paused) { 
-    sound.currentTime = 0;
-    sound.volume = 0.9;
-    sound.play().catch(err => console.log("ما قدر يشغل الصوت:", err));
-}
+        const sound = document.getElementById('celebrationSound');
+        if (sound && sound.paused) { 
+            sound.currentTime = 0;
+            sound.play().catch(err => console.log("Audio playback failed:", err));
+        }
 
-        // confetti
         const duration = 3 * 1000;
         const end = Date.now() + duration;
 
@@ -1030,7 +1050,5 @@ if (sound && sound.paused) {
     }
 
     </script>
-    
-    <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
 </body>
 </html>
