@@ -303,7 +303,7 @@
         }
         .task-checkbox-item input[type="checkbox"]:disabled {
             cursor: not-allowed;
-            opacity: 0.6; /* --- إضافة بسيطة لتمييز العنصر المعطل --- */
+            opacity: 0.6; 
         }
         .task-checkbox-item label {
             font-size: 14px;
@@ -327,13 +327,13 @@
         #adminSidebar {
             position: fixed;
             top: 0;
-            right: 0; /* يبدأ من اليمين */
+            right: 0; 
             width: 350px;
             height: 100%;
             background-color: white;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             padding: 20px;
-            transform: translateX(100%); /* إخفاء اللوحة جهة اليمين */
+            transform: translateX(100%); 
             transition: transform 0.3s ease-in-out;
             z-index: 1001;
             display: flex;
@@ -390,7 +390,7 @@
             background: none;
             border: none;
             cursor: pointer;
-            margin-right: 8px; /* المسافة بين الأزرار */
+            margin-right: 8px; 
             font-size: 16px;
         }
         #adminTasksList li .task-actions .edit-btn { color: #f0ad4e; }
@@ -542,8 +542,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
-    <audio id="celebrationSound" src="https://github.com/Bilal-z-projects/achievement-wall/raw/main/sounds/celebration.mp3" preload="auto"></audio>
-
+    <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
     <script>
     // --- المتغيرات العامة ---
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
@@ -571,7 +570,6 @@
             document.getElementById('loginScreen').style.display = 'flex';
         }
 
-        // --- التعديل الجذري هنا (الحل رقم 3) ---
         document.getElementById('achievementGrid').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
                 const checkbox = e.target;
@@ -579,42 +577,33 @@
                 const username = checkbox.dataset.username;
                 const isCompleted = checkbox.checked;
 
-                // الخطوة 1: تعطيل المربع لمنع الضغطات المتتالية
                 checkbox.disabled = true;
 
-                // الخطوة 2: إرسال الطلب للخادم وانتظار الرد المؤكد
                 saveTaskStatus(username, taskId, isCompleted)
                     .then(response => {
                         if (response.result === 'success' && response.data) {
-                            // الخطوة 3 (أ): تم الحفظ بنجاح، نقوم بتحديث بياناتنا المحلية بالبيانات المؤكدة من الخادم
                             updateLocalTaskStatus(response.data.username, response.data.taskId, response.data.isCompleted);
-
-                            // الخطوة 4: التحقق من إتمام جميع المهام لتشغيل التأثيرات
                             checkIfAllTasksCompleted(response.data.username);
                         } else {
-                            // الخطوة 3 (ب): حدث خطأ من الخادم، نعكس التغيير في الواجهة (نرجع المربع لحالته القديمة)
                             checkbox.checked = !isCompleted;
                             alert('حدث خطأ أثناء حفظ التغيير. يرجى المحاولة مرة أخرى.');
                         }
                     })
                     .catch(error => {
-                        // الخطوة 3 (ج): حدث خطأ في الشبكة، نعكس التغيير أيضاً
                         console.error("Error saving task status:", error);
                         checkbox.checked = !isCompleted;
                         alert('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
                     })
                     .finally(() => {
-                        // الخطوة 5: إعادة تفعيل المربع في كل الحالات (نجاح أو فشل)
                         checkbox.disabled = false;
                     });
             }
         });
-        // --- نهاية التعديل ---
         
         document.getElementById('adminTasksList').addEventListener('click', handleAdminTaskAction);
     });
 
-    // --- دوال واجهة الأدمن (بدون تغيير) ---
+    // --- دوال واجهة الأدمن ---
     function showAdminButton() {
         const adminBtn = document.createElement('button');
         adminBtn.className = 'admin-btn';
@@ -721,7 +710,7 @@
         }
     }
     
-    // --- دوال جلب البيانات والتحديث (بدون تغيير) ---
+    // --- دوال جلب البيانات والتحديث ---
     function initialLoad() {
         document.getElementById('loading').style.display = 'flex';
         fetchData(GOOGLE_SHEET_URL)
@@ -763,7 +752,7 @@
         });
     }
 
-    // --- دوال الواجهة الرسومية (UI) (بدون تغيير) ---
+    // --- دوال الواجهة الرسومية (UI) ---
     function renderBoardFirstTime() {
         const grid = document.getElementById('achievementGrid');
         grid.innerHTML = '';
@@ -789,7 +778,7 @@
                 }
                 const tasksListDiv = existingCard.querySelector('.note-tasks-list');
                 const existingCheckboxes = new Set(Array.from(tasksListDiv.querySelectorAll('input[type="checkbox"]:disabled')));
-                if (tasksListDiv && existingCheckboxes.size === 0) { // لا تحدث المهام إذا كان المستخدم يعدل فيها
+                if (tasksListDiv && existingCheckboxes.size === 0) {
                     tasksListDiv.innerHTML = createTasksHTML(cardData);
                 }
             } else {
@@ -808,7 +797,7 @@
     }
 
 
-    // --- دوال إنشاء العناصر (بدون تغيير) ---
+    // --- دوال إنشاء العناصر ---
     function createStickyNoteElement(cardData) {
         const card = document.createElement('div');
         card.className = 'sticky-note';
@@ -922,7 +911,6 @@
         toggleAdminSidebar(false);
     }
     
-    // --- دالة مساعدة لتحديث الحالة محلياً بعد تأكيد الخادم ---
     function updateLocalTaskStatus(username, taskId, isCompleted) {
         const user = boardData.find(u => u.username === username);
         if (!user || !user.tasks) return;
@@ -932,7 +920,6 @@
         }
     }
 
-    // --- دالة حفظ حالة المهمة (ترسل للشيت وتعيد Promise) ---
     function saveTaskStatus(username, taskId, isCompleted) {
         return fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${encodeURIComponent(taskId)}&isCompleted=${isCompleted}`);
     }
