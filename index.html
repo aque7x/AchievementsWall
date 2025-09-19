@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>حائط الإنجازات</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    
-    <script src="https://ucarecdn.com/libs/uploader/3.x/uploader.full.min.js"></script>
-    
     <style>
         :root {
             --bg-color: #f4f7f9;
@@ -25,7 +22,24 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #loginScreen { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .login-container { background: var(--card-bg); padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px var(--shadow-color); width: 100%; max-width: 400px; text-align: center; }
+        .login-container h1 { margin-bottom: 25px; color: var(--primary-color); }
+        .input-group { margin-bottom: 20px; text-align: right; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Tajawal', sans-serif; font-size: 16px; }
+        .login-container button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
+        .login-container button:hover { background-color: var(--primary-hover-color); }
+        .login-container button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #errorMessage { color: #d9534f; background-color: #f2dede; border: 1px solid #ebccd1; padding: 10px; border-radius: 5px; margin-top: 15px; display: none; }
+        #mainApp { display: none; }
         header { background-color: var(--card-bg); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px var(--shadow-color); position: sticky; top: 0; z-index: 100; height: 70px; }
+        #userInfo { font-weight: bold; font-size: 18px; }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+        .header-actions button { background: none; border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 8px; cursor: pointer; font-family: 'Tajawal', sans-serif; font-weight: bold; transition: background-color 0.3s, color 0.3s; }
+        .header-actions button.logout-btn { background-color: #d9534f; color: white; border-color: #d43f3a; }
+        .header-actions button.admin-btn { background-color: #5cb85c; color: white; border-color: #4cae4c; }
+        .header-actions button:hover { background-color: #f0f0f0; }
+        .header-actions button.logout-btn:hover { background-color: #c9302c; }
+        .header-actions button.admin-btn:hover { background-color: #449d44; }
         main { padding: 25px; }
         #globalProgressWrapper { position: sticky; top: 70px; z-index: 99; display: flex; align-items: center; gap: 15px; padding: 10px 15px; margin-bottom: 25px; background-color: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow-color) 0px 4px 12px; }
         #progressLabel { font-size: 14px; font-weight: bold; color: #555; white-space: nowrap; }
@@ -42,12 +56,40 @@
         .name-label { font-weight: bold; font-size: 18px; margin-bottom: 15px; padding-left: 100px; text-align: right; margin-top: 30px; }
         .writing-area { flex-grow: 1; position: relative; }
         .achievement-text { width: 100%; height: 100%; min-height: 100px; border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px; font-family: 'Tajawal', sans-serif; font-size: 15px; resize: none; background-color: #fafafa; }
+        .achievement-text:disabled { background-color: #f0f0f0; }
+        .save-status { position: absolute; bottom: 5px; left: 5px; font-size: 12px; color: #888; }
         .note-tasks-list { border-top: 1px solid #f0f0f0; margin-top: 15px; padding-top: 15px; }
+        .note-tasks-list h4 { margin: 0 0 10px 0; font-size: 15px; color: #333; text-align: right; font-weight: bold; }
+        .task-checkbox-item { display: flex; align-items: center; margin-bottom: 8px; direction: rtl; }
+        .task-checkbox-item input[type="checkbox"] { margin-left: 10px; cursor: pointer; transform: scale(1.1); }
+        .task-checkbox-item input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.6; }
+        .task-checkbox-item label { font-size: 14px; color: #555; flex-grow: 1; cursor: pointer; }
+        .task-checkbox-item input[type="checkbox"]:checked + label { text-decoration: line-through; color: #999; }
+        .no-tasks-note { font-size: 13px; color: #888; text-align: right; margin: 0; padding: 5px 0; }
+        #adminSidebar { position: fixed; top: 0; right: 0; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 10px rgba(0,0,0,0.1); padding: 20px; transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 1001; display: flex; flex-direction: column; }
+        #adminSidebar.open { transform: translateX(0); }
+        #sidebarOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; }
+        #sidebarOverlay.open { display: block; }
+        .modal { display: none; position: fixed; z-index: 500; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+        .close-btn { position: absolute; top: 15px; left: 15px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="loading"><div class="spinner"></div><span>جاري تحميل البيانات...</span></div>
-    <div id="loginScreen"> </div>
+
+    <div id="loginScreen">
+        <div class="login-container">
+            <h1>حائط الإنجازات</h1>
+            <form onsubmit="login(event)">
+                <div class="input-group"><label for="username">اسم المستخدم</label><input type="text" id="username" required></div>
+                <div class="input-group"><label for="password">كلمة المرور</label><input type="password" id="password" required></div>
+                <button type="submit">تسجيل الدخول</button>
+            </form>
+            <div id="errorMessage"></div>
+        </div>
+    </div>
+
     <div id="mainApp">
         <header>
             <div id="userInfo"></div>
@@ -58,28 +100,75 @@
             </div>
         </header>
         <main>
-            <div id="globalProgressWrapper"> </div>
+            <div id="globalProgressWrapper">
+                <span id="progressLabel">معدل الإنجاز العام</span>
+                <div id="globalProgressContainer"><div id="globalProgressBar"></div></div>
+                <span id="progressPercentage">0%</span>
+            </div>
             <div id="achievementGrid"></div>
         </main>
     </div>
+
+    <div id="sidebarOverlay" onclick="toggleAdminSidebar(false)"></div>
+    <div id="adminSidebar">
+        <h2>إدارة المهام الأسبوعية</h2>
+        <form id="addTaskForm" onsubmit="adminAddTask(event)">
+            <input type="text" id="newTaskInput" placeholder="اكتب محتوى المهمة الجديدة..." required>
+            <button type="submit">➕ إضافة مهمة</button>
+        </form>
+        <hr style="margin: 20px 0;">
+        <h3>المهام الحالية</h3>
+        <ul id="adminTasksList"></ul>
+    </div>
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="togglePasswordModal(false)">&times;</span>
+            <h2>تغيير كلمة المرور</h2>
+            <form id="passwordChangeForm" onsubmit="handleChangePassword(event)">
+                <div class="input-group"><label for="oldPassword">كلمة المرور القديمة</label><input type="password" id="oldPassword" required></div>
+                <div class="input-group"><label for="newPassword">كلمة المرور الجديدة</label><input type="password" id="newPassword" required></div>
+                <div class="input-group"><label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label><input type="password" id="confirmNewPassword" required></div>
+                <button type="submit">حفظ التغييرات</button>
+                <div id="passwordChangeError" style="color:red; margin-top:10px; display:none;"></div>
+                <div id="passwordChangeSuccess" style="color:green; margin-top:10px; display:none;"></div>
+            </form>
+        </div>
+    </div>
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleAboutModal(false)">&times;</span>
+            <h2>عن المطور</h2>
+            </div>
+    </div>
+
+    <script src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <audio id="celebrationSound" src="sounds/celebration.mp3" preload="auto"></audio>
 
     <script>
     const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyE-pSmDgZslXgciZpcw-A_b6eTVCrWB0jKHRBgG0GibAFuWs2vvMlC5sr80Ehyi23E/exec';
     
-    // !! تم وضع المفتاح العام الخاص بك هنا
-    const UPLOADCARE_PUBLIC_KEY = "public_G22nhwM3Po2ZcX2bUdjX2Bitbq3w";
+    // !! تم وضع معلومات ImageKit الخاصة بك هنا
+    const IMAGEKIT_PUBLIC_KEY = "public_G22nhwM3Po2ZcX2bUdjX2Bitbq3w";
+    const IMAGEKIT_URL_ENDPOINT = "secret_G22nhwM2Jmm8go4g19a35HQheRkQ";
+    
+    const imagekit = new ImageKit({
+        publicKey: IMAGEKIT_PUBLIC_KEY,
+        urlEndpoint: IMAGEKIT_URL_ENDPOINT,
+        authenticationEndpoint: GOOGLE_SHEET_URL + "?action=getImageKitAuth&callback=imagekit_auth_callback"
+    });
 
     let currentUser = null;
     let boardData = [];
     let updateInterval;
     let saveTimer;
+    const colors = ['peach', 'mint', 'lavender', 'pink', 'sky'];
 
     document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
+            document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`;
             if (currentUser.type === 'admin') showAdminButton();
@@ -88,88 +177,122 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'flex';
         }
+        document.getElementById('achievementGrid').addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox' && e.target.dataset.taskId) {
+                const checkbox = e.target;
+                const taskId = checkbox.dataset.taskId;
+                const username = checkbox.dataset.username;
+                const isCompleted = checkbox.checked;
+                checkbox.disabled = true;
+                saveTaskStatus(username, taskId, isCompleted).then(response => {
+                    if (response.result === 'success' && response.data) {
+                        updateLocalTaskStatus(response.data.username, response.data.taskId, response.data.isCompleted);
+                        checkIfAllTasksCompleted(response.data.username);
+                        updateGlobalProgressBar();
+                    } else { checkbox.checked = !isCompleted; alert('حدث خطأ أثناء حفظ التغيير.'); }
+                }).catch(error => { checkbox.checked = !isCompleted; alert('فشل الاتصال بالخادم.'); }).finally(() => { checkbox.disabled = false; });
+            }
+        });
+        const adminTasksList = document.getElementById('adminTasksList');
+        if(adminTasksList) adminTasksList.addEventListener('click', handleAdminTaskAction);
     });
 
     function createStickyNoteElement(cardData) {
         const card = document.createElement('div');
         card.className = 'sticky-note';
         card.dataset.id = cardData.id;
-        const canEdit = currentUser.type === 'admin' || (currentUser.type === 'student' && currentUser.username === cardData.username);
+        const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username;
+        const canEdit = currentUser.type === 'admin' || isOwner;
         const profilePicUrl = cardData.profilePictureUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cardData.name)}&background=random&color=fff&size=80`;
-        
         card.innerHTML = `
             <div class="profile-picture-container">
                 <img src="${profilePicUrl}" alt="صورة شخصية" class="profile-picture">
-                ${canEdit ? `<button class="change-pic-btn" title="تغيير الصورة">✏️</button>` : ''}
+                ${canEdit ? `<input type="file" accept="image/*" class="profile-upload-input" style="display:none;" data-id="${cardData.id}"><button class="change-pic-btn" title="تغيير الصورة">✏️</button>` : ''}
             </div>
             <div class="name-label">${cardData.name}</div>
-            <div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement || ''}</textarea></div>
+            <div class="writing-area"><textarea class="achievement-text" placeholder="اكتب إنجازاتك هنا..." ${!canEdit ? 'disabled' : ''}>${cardData.achievement || ''}</textarea>${canEdit ? '<div class="save-status"></div>' : ''}</div>
             <div class="note-tasks-list">${createTasksHTML(cardData)}</div>`;
-
         if (canEdit) {
+            const textarea = card.querySelector('.achievement-text');
+            const saveStatus = card.querySelector('.save-status');
+            textarea.addEventListener('input', () => {
+                saveStatus.textContent = '...';
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => {
+                    saveStatus.textContent = "⏳ جاري الحفظ...";
+                    saveAchievementToSheet(cardData.id, textarea.value).then(() => saveStatus.textContent = "✅ تم الحفظ").catch(() => saveStatus.textContent = "❌ خطأ في الحفظ");
+                }, 1500);
+            });
             const changePicBtn = card.querySelector('.change-pic-btn');
-            const userId = cardData.id;
-
-            changePicBtn.addEventListener('click', () => {
-                uploadcare.openDialog(null, {
-                    publicKey: UPLOADCARE_PUBLIC_KEY,
-                    imagesOnly: true,
-                    crop: "1:1",
-                }).onUpload.done(fileInfo => {
-                    const imageUrl = fileInfo.cdnUrl;
-                    saveAndUpdateProfilePicture(imageUrl, userId, changePicBtn);
-                });
+            const uploadInput = card.querySelector('.profile-upload-input');
+            changePicBtn.addEventListener('click', () => uploadInput.click());
+            uploadInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                const userId = event.target.dataset.id;
+                if (file) uploadImageToImageKit(file, changePicBtn, userId);
             });
         }
         return card;
     }
 
-    function saveAndUpdateProfilePicture(imageUrl, userId, button) {
+    function uploadImageToImageKit(file, button, userId) {
         const originalBtnContent = button.innerHTML;
         button.innerHTML = '⏳';
         button.disabled = true;
-
-        const dataToSave = { action: 'update', id: userId, field: 'profilePictureUrl', value: imageUrl };
-
-        fetchData(`${GOOGLE_SHEET_URL}?data=${encodeURIComponent(JSON.stringify(dataToSave))}`)
-            .then(() => {
-                alert('تم تحديث الصورة بنجاح!');
-                const user = boardData.find(u => u.id == userId);
-                if (user) user.profilePictureUrl = imageUrl;
-                const imgElement = document.querySelector(`.sticky-note[data-id='${userId}'] .profile-picture`);
-                if (imgElement) imgElement.src = imageUrl;
-            })
-            .catch(error => {
-                console.error('Error saving URL:', error);
-                alert('تم رفع الصورة ولكن فشل حفظ الرابط.');
-            })
-            .finally(() => {
-                button.innerHTML = '✏️';
+        imagekit.upload({
+            file: file,
+            fileName: file.name,
+            folder: "/achievement_wall_users/"
+        }, (err, result) => {
+            if (err) {
+                console.error("ImageKit upload error:", err);
+                alert("حدث خطأ أثناء رفع الصورة.");
+                button.innerHTML = originalBtnContent;
                 button.disabled = false;
-            });
-    }
-
-    function fetchData(url) {
-        return new Promise((resolve, reject) => {
-            const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-            window[callbackName] = (data) => {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                resolve(data);
-            };
-            const script = document.createElement('script');
-            script.src = `${url}${(url.includes('?') ? '&' : '?')}callback=${callbackName}`;
-            script.onerror = () => {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                reject(new Error('Network error'));
-            };
-            document.body.appendChild(script);
+                return;
+            }
+            const imageUrl = result.url;
+            const dataToSave = { action: 'update', id: userId, field: 'profilePictureUrl', value: imageUrl };
+            fetchData(`${GOOGLE_SHEET_URL}?data=${encodeURIComponent(JSON.stringify(dataToSave))}`)
+                .then(() => {
+                    alert('تم تحديث الصورة بنجاح!');
+                    const user = boardData.find(u => u.id == userId);
+                    if (user) user.profilePictureUrl = imageUrl;
+                    const imgElement = document.querySelector(`.sticky-note[data-id='${userId}'] .profile-picture`);
+                    if (imgElement) imgElement.src = imageUrl;
+                })
+                .catch(error => alert('تم رفع الصورة ولكن فشل حفظ الرابط.'))
+                .finally(() => {
+                    button.innerHTML = originalBtnContent;
+                    button.disabled = false;
+                });
         });
     }
 
-    // --- All other JavaScript functions (initialLoad, login, etc.) remain the same ---
-    // ...
+    function fetchData(url) { return new Promise((resolve, reject) => { const callbackName = `jsonp_callback_${Math.round(100000 * Math.random())}`; window[callbackName] = (data) => { delete window[callbackName]; document.body.removeChild(script); resolve(data); }; const script = document.createElement('script'); script.src = `${url}${(url.includes('?') ? '&' : '?')}callback=${callbackName}`; script.onerror = () => { delete window[callbackName]; document.body.removeChild(script); reject(new Error('Network error')); }; document.body.appendChild(script); }); }
+    function initialLoad() { document.getElementById('loading').style.display = 'flex'; fetchData(GOOGLE_SHEET_URL).then(result => { if (result.result === 'success') { boardData = normalizeBoardData(result.data); renderBoardFirstTime(); updateGlobalProgressBar(); } else { throw new Error(result.message); } }).catch(error => console.error("Error during initial load:", error)).finally(() => { document.getElementById('loading').style.display = 'none'; if (updateInterval) clearInterval(updateInterval); updateInterval = setInterval(updateData, 10000); }); }
+    function updateData() { fetchData(GOOGLE_SHEET_URL).then(result => { if (result.result === 'success') { const normalized = normalizeBoardData(result.data); updateBoardUI(normalized); } }).catch(error => console.error("Update failed:", error)); }
+    function normalizeBoardData(dataArray) { return dataArray.map(u => { if (u.tasks && Array.isArray(u.tasks)) { u.tasks = u.tasks.map(t => ({ ...t, isCompleted: (t.isCompleted === true || String(t.isCompleted).toLowerCase() === "true") })); } else { u.tasks = []; } return u; }); }
+    function renderBoardFirstTime() { const grid = document.getElementById('achievementGrid'); grid.innerHTML = ''; boardData.forEach(cardData => { if (cardData.id) { grid.appendChild(createStickyNoteElement(cardData)); } }); }
+    function updateBoardUI(newBoardData) { const grid = document.getElementById('achievementGrid'); const activeTextarea = document.activeElement.tagName === 'TEXTAREA' ? document.activeElement : null; newBoardData.forEach(cardData => { if (!cardData.id) return; const existingCard = grid.querySelector(`.sticky-note[data-id='${cardData.id}']`); if (existingCard) { const textarea = existingCard.querySelector('.achievement-text'); if (textarea !== activeTextarea && textarea.value !== cardData.achievement) { textarea.value = cardData.achievement; } const tasksListDiv = existingCard.querySelector('.note-tasks-list'); const existingCheckboxes = tasksListDiv.querySelectorAll('input[type="checkbox"]:disabled'); if (tasksListDiv && existingCheckboxes.length === 0) { tasksListDiv.innerHTML = createTasksHTML(cardData); } const profilePic = existingCard.querySelector('.profile-picture'); const newProfilePicUrl = cardData.profilePictureUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cardData.name)}&background=random&color=fff&size=80`; if (profilePic.src !== newProfilePicUrl) { profilePic.src = newProfilePicUrl; } } else { grid.appendChild(createStickyNoteElement(cardData)); } }); const newIds = new Set(newBoardData.map(d => String(d.id))); grid.querySelectorAll('.sticky-note').forEach(card => { if (!newIds.has(card.dataset.id)) { card.remove(); } }); boardData = newBoardData; updateGlobalProgressBar(); }
+    function createTasksHTML(cardData) { let tasksHTML = '<h4>المهام الأسبوعية</h4>'; const isOwner = currentUser.type === 'student' && currentUser.username === cardData.username; if (cardData.tasks && cardData.tasks.length > 0) { cardData.tasks.forEach(task => { const checkboxId = `task-${task.taskId}-${cardData.username}`; tasksHTML += `<div class="task-checkbox-item"><input type="checkbox" id="${checkboxId}" data-task-id="${task.taskId}" data-username="${cardData.username}" ${task.isCompleted ? 'checked' : ''} ${!isOwner ? 'disabled' : ''}><label for="${checkboxId}">${task.taskContent}</label></div>`; }); } else { tasksHTML += '<p class="no-tasks-note">لا توجد مهام حالياً.</p>'; } return tasksHTML; }
+    function updateGlobalProgressBar() { const wrapper = document.getElementById('globalProgressWrapper'); const bar = document.getElementById('globalProgressBar'); const percentageText = document.getElementById('progressPercentage'); if (!boardData || boardData.length === 0) { if(wrapper) wrapper.style.display = 'none'; return; } let totalTasks = 0, completedTasks = 0; boardData.forEach(user => { if(user.tasks && Array.isArray(user.tasks)) { totalTasks += user.tasks.length; completedTasks += user.tasks.filter(t => t.isCompleted).length; } }); if (totalTasks === 0) { if(wrapper) wrapper.style.display = 'none'; return; } else { if(wrapper) wrapper.style.display = 'flex'; } const percentage = (completedTasks / totalTasks) * 100; if(bar) bar.style.width = percentage + '%'; if(percentageText) percentageText.textContent = `${Math.round(percentage)}%`; }
+    function login(event) { event.preventDefault(); const form = event.target; const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'جاري التحقق...'; const errorDiv = document.getElementById('errorMessage'); errorDiv.style.display = 'none'; fetchData(`${GOOGLE_SHEET_URL}?action=login&username=${encodeURIComponent(form.username.value.toLowerCase())}&password=${encodeURIComponent(form.password.value)}`).then(res => { if (res.result === 'success') { currentUser = res.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); document.getElementById('loginScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; document.getElementById('userInfo').textContent = `مرحباً، ${currentUser.displayName}`; if (currentUser.type === 'admin') showAdminButton(); initialLoad(); } else { errorDiv.textContent = res.message; errorDiv.style.display = 'block'; } }).catch(() => { errorDiv.textContent = 'فشل الاتصال بالخادم.'; errorDiv.style.display = 'block'; }).finally(() => { btn.disabled = false; btn.textContent = 'تسجيل الدخول'; }); }
+    function logout() { localStorage.removeItem('currentUser'); window.location.reload(); }
+    function updateLocalTaskStatus(username, taskId, isCompleted) { const user = boardData.find(u => u.username === username); if (user && user.tasks) { const task = user.tasks.find(t => t.taskId == taskId); if (task) task.isCompleted = !!isCompleted; } }
+    function saveTaskStatus(username, taskId, isCompleted) { return fetchData(`${GOOGLE_SHEET_URL}?action=updateTaskStatus&username=${encodeURIComponent(username)}&taskId=${taskId}&isCompleted=${isCompleted}`); }
+    function saveAchievementToSheet(id, achievementText) { const data = { action: 'update', id: id, field: 'achievement', value: achievementText }; return fetchData(`${GOOGLE_SHEET_URL}?data=${encodeURIComponent(JSON.stringify(data))}`); }
+    function handleChangePassword(event) { event.preventDefault(); /* ... */ }
+    function checkIfAllTasksCompleted(username) { const user = boardData.find(u => u.username === username); if (user && user.tasks && user.tasks.length > 0 && user.tasks.every(t => t.isCompleted)) triggerFirework(); }
+    function triggerFirework() { const sound = document.getElementById('celebrationSound'); if (sound && sound.paused) { sound.currentTime = 0; sound.play().catch(err => console.log("Audio failed:", err)); } const end = Date.now() + 3000; (function frame() { confetti({ particleCount: 3, spread: 60, origin: { y: 0.6 } }); if (Date.now() < end) requestAnimationFrame(frame); }()); }
+    function togglePasswordModal(show) { const modal = document.getElementById('passwordModal'); if(modal) modal.style.display = show ? 'flex' : 'none'; }
+    function toggleAboutModal(show) { const modal = document.getElementById('aboutModal'); if(modal) modal.style.display = show ? 'flex' : 'none'; }
+    function showAdminButton() { const adminBtn = document.createElement('button'); adminBtn.className = 'admin-btn'; adminBtn.textContent = 'إدارة المهام'; adminBtn.onclick = () => toggleAdminSidebar(true); const headerActions = document.querySelector('.header-actions'); if(headerActions) headerActions.insertBefore(adminBtn, headerActions.firstChild); }
+    function toggleAdminSidebar(show) { const sidebar = document.getElementById('adminSidebar'); const overlay = document.getElementById('sidebarOverlay'); if(sidebar) sidebar.classList.toggle('open', show); if(overlay) overlay.classList.toggle('open', show); if (show) fetchAdminTasks(); }
+    function fetchAdminTasks() { /* ... */ }
+    function adminAddTask(event) { /* ... */ }
+    function handleAdminTaskAction(event) { /* ... */ }
+
     </script>
 </body>
 </html>
